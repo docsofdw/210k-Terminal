@@ -37,101 +37,131 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --color-brand-primary: var(--brand-primary);
-  --color-brand-primary-hover: var(--brand-primary-hover);
-  --color-brand-primary-foreground: var(--brand-primary-foreground);
-  --color-brand-secondary: var(--brand-secondary);
-  --color-brand-secondary-hover: var(--brand-secondary-hover);
-  --color-brand-accent: var(--brand-accent);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
+  --color-terminal-orange: var(--terminal-orange);
+  --color-terminal-green: var(--terminal-green);
+  --color-terminal-red: var(--terminal-red);
+  --color-terminal-blue: var(--terminal-blue);
+  --color-terminal-yellow: var(--terminal-yellow);
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
   --radius-xl: calc(var(--radius) + 4px);
 }
 
+/*
+ * Bloomberg Terminal Inspired Theme
+ * Dark-first design with orange accents
+ */
+
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-  
-  /* Brand Colors */
-  --brand-primary: oklch(0.522 0.223 262.881); /* indigo-600 */
-  --brand-primary-hover: oklch(0.475 0.196 264.798); /* indigo-700 */
-  --brand-primary-foreground: oklch(1 0 0);
-  --brand-secondary: oklch(0.531 0.255 286.623); /* purple-600 */
-  --brand-secondary-hover: oklch(0.474 0.215 286.03); /* purple-700 */
-  --brand-accent: oklch(0.661 0.238 351.367); /* pink-600 */
+  /* Minimal border radius for terminal aesthetic */
+  --radius: 0.25rem;
+
+  /* Light mode - rarely used, but available */
+  --background: #f5f5f5;
+  --foreground: #1a1a1a;
+  --card: #ffffff;
+  --card-foreground: #1a1a1a;
+  --popover: #ffffff;
+  --popover-foreground: #1a1a1a;
+  --primary: #ff8200;
+  --primary-foreground: #000000;
+  --secondary: #e5e5e5;
+  --secondary-foreground: #1a1a1a;
+  --muted: #e5e5e5;
+  --muted-foreground: #666666;
+  --accent: #fff3e0;
+  --accent-foreground: #1a1a1a;
+  --destructive: #dc2626;
+  --border: #d4d4d4;
+  --input: #e5e5e5;
+  --ring: #ff8200;
+
+  /* Bloomberg Terminal Colors */
+  --terminal-orange: #ff8200;
+  --terminal-green: #00d26a;
+  --terminal-red: #ff3b30;
+  --terminal-blue: #4a90d9;
+  --terminal-yellow: #ffcc00;
+
+  /* Charts */
+  --chart-1: #ff8200;
+  --chart-2: #00d26a;
+  --chart-3: #4a90d9;
+  --chart-4: #ffcc00;
+  --chart-5: #ff3b30;
+
+  /* Sidebar */
+  --sidebar: #fafafa;
+  --sidebar-foreground: #1a1a1a;
+  --sidebar-primary: #ff8200;
+  --sidebar-primary-foreground: #000000;
+  --sidebar-accent: #fff3e0;
+  --sidebar-accent-foreground: #1a1a1a;
+  --sidebar-border: #e5e5e5;
+  --sidebar-ring: #ff8200;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
-  
-  /* Brand Colors - Dark Mode */
-  --brand-primary: oklch(0.598 0.217 263.827); /* indigo-400 */
-  --brand-primary-hover: oklch(0.648 0.194 265.755); /* indigo-300 */
-  --brand-primary-foreground: oklch(0.145 0 0);
-  --brand-secondary: oklch(0.636 0.265 287.621); /* purple-400 */
-  --brand-secondary-hover: oklch(0.678 0.234 285.751); /* purple-300 */
-  --brand-accent: oklch(0.717 0.23 349.761); /* pink-400 */
+  /* Deep black background - Bloomberg signature */
+  --background: #000000;
+  --foreground: #e5e5e5;
+
+  /* Cards with subtle dark gray */
+  --card: #0a0a0a;
+  --card-foreground: #e5e5e5;
+
+  /* Popovers */
+  --popover: #0a0a0a;
+  --popover-foreground: #e5e5e5;
+
+  /* Primary - Bloomberg Orange */
+  --primary: #ff8200;
+  --primary-foreground: #000000;
+
+  /* Secondary */
+  --secondary: #1a1a1a;
+  --secondary-foreground: #e5e5e5;
+
+  /* Muted */
+  --muted: #1a1a1a;
+  --muted-foreground: #888888;
+
+  /* Accent */
+  --accent: #1a1a0a;
+  --accent-foreground: #ff8200;
+
+  /* Destructive - Bloomberg Red */
+  --destructive: #ff3b30;
+
+  /* Borders - subtle */
+  --border: #2a2a2a;
+  --input: #1a1a1a;
+  --ring: #ff8200;
+
+  /* Bloomberg Terminal Colors */
+  --terminal-orange: #ff8200;
+  --terminal-green: #00d26a;
+  --terminal-red: #ff3b30;
+  --terminal-blue: #4a90d9;
+  --terminal-yellow: #ffcc00;
+
+  /* Charts - Bloomberg palette */
+  --chart-1: #ff8200;
+  --chart-2: #00d26a;
+  --chart-3: #4a90d9;
+  --chart-4: #ffcc00;
+  --chart-5: #ff3b30;
+
+  /* Sidebar - darker than main */
+  --sidebar: #050505;
+  --sidebar-foreground: #e5e5e5;
+  --sidebar-primary: #ff8200;
+  --sidebar-primary-foreground: #000000;
+  --sidebar-accent: #1a1a1a;
+  --sidebar-accent-foreground: #ff8200;
+  --sidebar-border: #2a2a2a;
+  --sidebar-ring: #ff8200;
 }
 
 @layer base {
@@ -140,6 +170,72 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: var(--font-geist-sans), system-ui, sans-serif;
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+  }
+}
+
+/* Bloomberg Terminal Utility Classes */
+@layer utilities {
+  /* Text colors for financial data */
+  .text-positive {
+    color: var(--terminal-green);
+  }
+  .text-negative {
+    color: var(--terminal-red);
+  }
+  .text-terminal-orange {
+    color: var(--terminal-orange);
+  }
+  .text-terminal-blue {
+    color: var(--terminal-blue);
+  }
+  .text-terminal-yellow {
+    color: var(--terminal-yellow);
+  }
+
+  /* Background colors */
+  .bg-terminal-orange {
+    background-color: var(--terminal-orange);
+  }
+  .bg-terminal-green {
+    background-color: var(--terminal-green);
+  }
+  .bg-terminal-red {
+    background-color: var(--terminal-red);
+  }
+  .bg-terminal-blue {
+    background-color: var(--terminal-blue);
+  }
+
+  /* Terminal-style borders */
+  .border-terminal {
+    border-color: var(--terminal-blue);
+  }
+
+  /* Dense table styling */
+  .table-dense th,
+  .table-dense td {
+    @apply py-1 px-2 text-xs;
+  }
+
+  /* Monospace numbers for alignment */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Bloomberg-style header */
+  .terminal-header {
+    @apply text-terminal-orange font-bold uppercase tracking-wider text-sm;
+  }
+
+  /* Glow effect for important values */
+  .glow-orange {
+    text-shadow: 0 0 10px rgba(255, 130, 0, 0.5);
+  }
+  .glow-green {
+    text-shadow: 0 0 10px rgba(0, 210, 106, 0.5);
+  }
+  .glow-red {
+    text-shadow: 0 0 10px rgba(255, 59, 48, 0.5);
   }
 }
