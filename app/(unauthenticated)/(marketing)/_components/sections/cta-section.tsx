@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { motion } from "framer-motion"
-import { ArrowRight, Github } from "lucide-react"
+import { ArrowRight, TrendingUp } from "lucide-react"
 import Link from "next/link"
 import { SectionWrapper } from "./section-wrapper"
 
@@ -17,17 +17,17 @@ export function CTASection() {
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
         >
-          Ready to build something amazing?
+          Ready to dive into treasury analytics?
         </motion.h2>
         <motion.p
-          className="mx-auto mt-6 max-w-xl text-lg leading-8"
+          className="text-muted-foreground mx-auto mt-6 max-w-xl text-lg leading-8"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5, delay: 0.1 }}
         >
-          Stop wasting time on boilerplate. Clone this template and start
-          shipping your product today.
+          Access comprehensive Bitcoin treasury data, real-time comparisons,
+          and powerful analytics tools.
         </motion.p>
         <motion.div
           className="mt-10 flex items-center justify-center gap-x-6"
@@ -36,28 +36,11 @@ export function CTASection() {
           viewport={{ once: true }}
           transition={{ duration: 0.5, delay: 0.2 }}
         >
-          <Button
-            size="lg"
-            className="bg-brand-primary text-brand-primary-foreground hover:bg-brand-primary-hover"
-            asChild
-          >
-            <Link
-              href="https://github.com/mckaywrigley/mckays-app-template"
-              target="_blank"
-            >
-              <Github className="mr-2 h-4 w-4" />
-              Clone Template
+          <Button size="lg" asChild>
+            <Link href="/login">
+              <TrendingUp className="mr-2 h-4 w-4" />
+              Access Dashboard
               <ArrowRight className="ml-2 h-4 w-4" />
-            </Link>
-          </Button>
-          <Button
-            size="lg"
-            variant="link"
-            className="text-brand-primary hover:text-brand-primary-hover"
-            asChild
-          >
-            <Link href="#features">
-              View features <span aria-hidden="true">→</span>
             </Link>
           </Button>
         </motion.div>
@@ -71,9 +54,9 @@ export function CTASection() {
           transition={{ duration: 0.5, delay: 0.3 }}
         >
           {[
-            { label: "Time to First Deploy", value: "< 5 min" },
-            { label: "Production Ready", value: "100%" },
-            { label: "License", value: "MIT" }
+            { label: "Companies Tracked", value: "15+" },
+            { label: "Real-time Updates", value: "24/7" },
+            { label: "Key Metrics", value: "10+" }
           ].map((stat, index) => (
             <motion.div
               key={stat.label}
@@ -85,7 +68,7 @@ export function CTASection() {
               <dt className="text-muted-foreground text-sm font-medium">
                 {stat.label}
               </dt>
-              <dd className="from-brand-primary to-brand-secondary mt-2 bg-gradient-to-r bg-clip-text text-2xl font-bold text-transparent">
+              <dd className="from-orange-500 to-yellow-500 mt-2 bg-gradient-to-r bg-clip-text text-2xl font-bold text-transparent">
                 {stat.value}
               </dd>
             </motion.div>

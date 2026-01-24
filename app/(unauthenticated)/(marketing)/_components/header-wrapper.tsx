@@ -5,12 +5,12 @@ import { Header } from "./header"
 
 export async function HeaderWrapper() {
   const user = await currentUser()
-  let membership: SelectCustomer["membership"] | null = null
+  let role: SelectCustomer["role"] | null = null
 
   if (user) {
     const customer = await getCustomerByUserId(user.id)
-    membership = customer?.membership ?? "free"
+    role = customer?.role ?? "viewer"
   }
 
-  return <Header userMembership={membership} />
+  return <Header userRole={role} />
 }

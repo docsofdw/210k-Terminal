@@ -1,53 +1,67 @@
-# Mckay's App Template
+# 210k Terminal
 
-This is a full-stack app template that I use to build my own apps.
-
-To learn how to use this template with the best AI tools & workflows, check out my workshops on [Takeoff](https://JoinTakeoff.com/)!
+Bitcoin treasury company analytics.
 
 ## Tech Stack
 
-- Frontend: [Next.js](https://nextjs.org/docs), [Tailwind](https://tailwindcss.com/docs/guides/nextjs), [Shadcn](https://ui.shadcn.com/docs/installation), [Framer Motion](https://www.framer.com/motion/introduction/)
-- Backend: [PostgreSQL](https://www.postgresql.org/about/), [Supabase](https://supabase.com/), [Drizzle](https://orm.drizzle.team/docs/get-started-postgresql), [Server Actions](https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions-and-mutations)
+- Frontend: [Next.js 15](https://nextjs.org/docs), [Tailwind CSS](https://tailwindcss.com/docs/guides/nextjs), [Shadcn UI](https://ui.shadcn.com/docs/installation), [Framer Motion](https://www.framer.com/motion/introduction/)
+- Backend: [PostgreSQL](https://www.postgresql.org/about/), [Supabase](https://supabase.com/), [Drizzle ORM](https://orm.drizzle.team/docs/get-started-postgresql), [Server Actions](https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions-and-mutations)
 - Auth: [Clerk](https://clerk.com/)
-- Payments: [Stripe](https://stripe.com/)
+- Charts: [Recharts](https://recharts.org/)
 
-## Prerequisites
+## Features
 
-You will need accounts for the following services.
-
-They all have free plans that you can use to get started.
-
-- Create a [GitHub](https://github.com/) account
-- Create a [Supabase](https://supabase.com/) account
-- Create a [Clerk](https://clerk.com/) account
-- Create a [Stripe](https://stripe.com/) account
-- Create a [Vercel](https://vercel.com/) account
-
-You will likely not need paid plans unless you are building a business.
+- **Treasury Comps Table**: Compare 15+ Bitcoin treasury companies with mNAV, premium/discount, sats per share
+- **Real-time BTC Prices**: Live Bitcoin price updates integrated into all calculations
+- **Portfolio Tracking**: Track positions with cost basis, P&L, and portfolio weight analysis
+- **Historical Charts**: Visualize mNAV trends, holdings growth, and comparative performance
+- **Price Alerts**: Telegram and Slack notifications for price thresholds and mNAV changes
+- **Role-Based Access**: Admin and viewer roles for team access control
 
 ## Environment Variables
 
 ```bash
-# DB
+# Database
 DATABASE_URL=
-# Access Supabase Studio here: http://127.0.0.1:54323/project/default
+DIRECT_URL=
 
-# Clerk
+# Clerk Auth
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
 CLERK_SECRET_KEY=
-NEXT_PUBLIC_CLERK_SIGN_IN_URL=/login # do not change
-NEXT_PUBLIC_CLERK_SIGN_UP_URL=/signup # do not change
+NEXT_PUBLIC_CLERK_SIGN_IN_URL=/login
+NEXT_PUBLIC_CLERK_SIGN_UP_URL=/signup
 
-# Stripe
-STRIPE_SECRET_KEY=
-STRIPE_WEBHOOK_SECRET=
-NEXT_PUBLIC_STRIPE_PAYMENT_LINK_YEARLY=
-NEXT_PUBLIC_STRIPE_PAYMENT_LINK_MONTHLY=
+# Cron Jobs
+CRON_SECRET=
+
+# Notifications (optional)
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_CHAT_ID=
+SLACK_WEBHOOK_URL=
 ```
 
 ## Setup
 
 1. Clone the repository
-2. Copy `.env.example` to `.env.local` and fill in the environment variables from above
+2. Copy `.env.example` to `.env.local` and fill in the environment variables
 3. Run `npm install` to install dependencies
-4. Run `npm run dev` to run the app locally
+4. Run `npx drizzle-kit push` to set up the database schema
+5. Run `npx bun db/seed` to seed initial company data
+6. Run `npm run dev` to start the development server
+
+## Development
+
+```bash
+npm run dev      # Start dev server
+npm run build    # Build for production
+npm run lint     # Run ESLint
+npm run clean    # Lint and format
+```
+
+## Database
+
+```bash
+npx drizzle-kit push      # Push schema changes
+npx drizzle-kit generate  # Generate migrations
+npx bun db/seed           # Seed company data
+```

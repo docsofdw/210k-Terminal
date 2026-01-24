@@ -12,34 +12,34 @@ import { SectionWrapper } from "./section-wrapper"
 
 const faqs = [
   {
-    question: "What's included in the template?",
+    question: "What is 210k Terminal?",
     answer:
-      "Everything you need to build a production app: Next.js 15 with App Router, TypeScript, Tailwind CSS v4, shadcn/ui components, Clerk authentication, Stripe payments, PostgreSQL with Drizzle ORM, and PostHog analytics. All pre-configured and ready to use."
+      "A tool for tracking and analyzing public companies that hold Bitcoin on their balance sheets. Compare metrics like mNAV, enterprise value, and sats per share across 15+ treasury companies."
   },
   {
-    question: "How do I get started?",
+    question: "What metrics are tracked?",
     answer:
-      "Simply clone the repository from GitHub, copy the .env.example to .env.local, add your API keys, run npm install, and you're ready to go. The whole process takes less than 5 minutes."
+      "We track BTC holdings, stock prices, market caps, enterprise value, mNAV (market cap to NAV ratio), sats per share, premium/discount to NAV, and more. All data is updated in real-time during market hours."
   },
   {
-    question: "Is this really free?",
+    question: "Who can access the platform?",
     answer:
-      "Yes! This template is 100% free and open source under the MIT license. You can use it for personal projects, commercial applications, or anything else. No hidden costs or premium features."
+      "The platform is available to authorized 210k Capital team members. Contact an administrator if you need access."
   },
   {
-    question: "Can I customize everything?",
+    question: "How often is data updated?",
     answer:
-      "Absolutely! You have full access to all the source code. Modify the components, change the styling, add or remove features - it's your codebase now. The template is designed to be a starting point that you can build upon."
+      "BTC prices update every 5 minutes, stock prices update every 15 minutes during market hours, and FX rates update daily. Holdings data is updated manually when companies report changes."
   },
   {
-    question: "What about deployment?",
+    question: "Can I set up alerts?",
     answer:
-      "The template works with any hosting provider that supports Next.js. Deploy to Vercel, Netlify, Railway, or any other platform. Database can be hosted on Supabase, Neon, or any PostgreSQL provider."
+      "Yes! You can configure price alerts and mNAV threshold notifications via Telegram or Slack. Alert management is available in the Alerts section of the dashboard."
   },
   {
-    question: "How do I get help if I'm stuck?",
+    question: "How do I report issues or request features?",
     answer:
-      "Open an issue on GitHub for bugs or feature requests. For general questions, the community is active in discussions. If you need dedicated support, consider becoming a sponsor or reaching out for custom development."
+      "Contact your administrator or submit feedback through the Support page in the dashboard."
   }
 ]
 
@@ -65,7 +65,7 @@ export function FAQSection() {
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
           >
-            Frequently asked questions
+            Frequently Asked Questions
           </motion.h2>
           <motion.p
             className="text-muted-foreground mt-6 text-base leading-7"
@@ -74,8 +74,7 @@ export function FAQSection() {
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.1 }}
           >
-            Everything you need to know about the template. Can't find what
-            you're looking for? Open an issue on GitHub.
+            Everything you need to know about 210k Terminal.
           </motion.p>
           <dl className="mt-10 space-y-6">
             {faqs.map((faq, index) => (

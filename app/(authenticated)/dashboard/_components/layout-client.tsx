@@ -26,7 +26,7 @@ export default function DashboardClientLayout({
     name: string
     email: string
     avatar: string
-    membership: string
+    role: string
   }
 }) {
   const pathname = usePathname()

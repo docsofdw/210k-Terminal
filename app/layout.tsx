@@ -1,4 +1,3 @@
-import { CheckoutRedirect } from "@/components/payments/checkout-redirect"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { TailwindIndicator } from "@/components/utility/tailwind-indicator"
 import { ClerkProvider } from "@clerk/nextjs"
@@ -19,8 +18,8 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "Mckay's App Template",
-  description: "The easiest way to start your next project."
+  title: "210k Terminal",
+  description: "Bitcoin treasury analytics."
 }
 
 export default function RootLayout({
@@ -37,7 +36,6 @@ export default function RootLayout({
           <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
             <TooltipProvider>
               {children}
-              <CheckoutRedirect />
 
               <TailwindIndicator />
               <Toaster />

@@ -1,7 +1,14 @@
 import { config } from "dotenv"
 import { drizzle as drizzlePostgres } from "drizzle-orm/postgres-js"
 import postgres from "postgres"
+
+// Schema imports
+import { btcPrices } from "./schema/btc-prices"
+import { companies } from "./schema/companies"
 import { customers } from "./schema/customers"
+import { fxRates } from "./schema/fx-rates"
+import { holdingsSnapshots } from "./schema/holdings-snapshots"
+import { stockPrices } from "./schema/stock-prices"
 
 config({ path: ".env.local" })
 
@@ -11,9 +18,17 @@ if (!databaseUrl) {
 }
 
 const dbSchema = {
-  // tables
-  customers
-  // relations
+  // Core tables
+  customers,
+  companies,
+
+  // Market data
+  btcPrices,
+  stockPrices,
+  fxRates,
+
+  // Snapshots
+  holdingsSnapshots
 }
 
 function initializeDb(url: string) {

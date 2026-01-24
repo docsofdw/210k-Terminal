@@ -1,46 +1,18 @@
 "use client"
 
-import { PricingButton } from "@/components/payments/pricing-button"
 import { Button } from "@/components/ui/button"
 import { motion } from "framer-motion"
-import { Check, CreditCard, Zap } from "lucide-react"
+import { Check, Shield, TrendingUp } from "lucide-react"
+import Link from "next/link"
 import { SectionWrapper } from "./section-wrapper"
 
-const pricing = [
-  {
-    name: "Pro Monthly",
-    price: "$19",
-    period: "/month",
-    description: "Perfect for growing businesses",
-    features: [
-      "Unlimited projects",
-      "Advanced analytics",
-      "Priority support",
-      "Custom integrations",
-      "API access",
-      "Export data"
-    ],
-    paymentLink: process.env.NEXT_PUBLIC_STRIPE_PAYMENT_LINK_MONTHLY,
-    icon: CreditCard,
-    highlight: false
-  },
-  {
-    name: "Pro Yearly",
-    price: "$190",
-    period: "/year",
-    description: "Best value - save $38 per year",
-    features: [
-      "Everything in monthly",
-      "2 months free",
-      "Early access to features",
-      "Custom onboarding",
-      "Dedicated account manager",
-      "99.9% uptime SLA"
-    ],
-    paymentLink: process.env.NEXT_PUBLIC_STRIPE_PAYMENT_LINK_YEARLY,
-    icon: Zap,
-    highlight: true
-  }
+const features = [
+  "Real-time Bitcoin treasury tracking",
+  "Comparative analysis (mNAV, EV/BTC NAV)",
+  "Portfolio management",
+  "Historical charts and data",
+  "Price alerts (Telegram/Slack)",
+  "Admin audit logging"
 ]
 
 export function PricingSection() {
@@ -55,7 +27,7 @@ export function PricingSection() {
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
           >
-            Simple, transparent pricing
+            Internal Platform Access
           </motion.h2>
           <motion.p
             className="text-muted-foreground mt-4 text-lg leading-8"
@@ -64,138 +36,49 @@ export function PricingSection() {
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.1 }}
           >
-            Choose the plan that fits your needs. Cancel anytime.
+            210k Terminal is available to authorized team members.
           </motion.p>
         </div>
 
-        <div className="mx-auto mt-16 grid max-w-lg grid-cols-1 gap-8 lg:max-w-none lg:grid-cols-2">
-          {pricing.map((tier, index) => (
-            <motion.div
-              key={tier.name}
-              className={`relative rounded-3xl p-8 ring-1 ${
-                tier.highlight
-                  ? "bg-primary text-primary-foreground ring-primary"
-                  : "bg-card text-card-foreground ring-border"
-              }`}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{
-                duration: 0.5,
-                delay: index * 0.1
-              }}
-            >
-              {tier.highlight && (
-                <motion.div
-                  className="absolute -top-4 left-1/2 -translate-x-1/2"
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  whileInView={{ opacity: 1, scale: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.4, delay: 0.3 }}
-                >
-                  <span className="bg-primary text-primary-foreground inline-flex items-center rounded-full px-4 py-1 text-xs font-semibold">
-                    BEST VALUE
-                  </span>
-                </motion.div>
-              )}
+        <div className="mx-auto mt-16 max-w-lg">
+          <motion.div
+            className="bg-card text-card-foreground ring-border relative rounded-3xl p-8 ring-1"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+          >
+            <div className="flex items-center gap-4">
+              <TrendingUp className="text-primary h-8 w-8" />
+              <h3 className="text-foreground text-lg leading-8 font-semibold">
+                Team Access
+              </h3>
+            </div>
 
-              <div className="flex items-center gap-4">
-                <tier.icon
-                  className={`h-8 w-8 ${
-                    tier.highlight ? "text-primary-foreground" : "text-primary"
-                  }`}
-                />
-                <h3
-                  className={`text-lg leading-8 font-semibold ${
-                    tier.highlight
-                      ? "text-primary-foreground"
-                      : "text-foreground"
-                  }`}
-                >
-                  {tier.name}
-                </h3>
-              </div>
+            <p className="text-muted-foreground mt-4 text-sm leading-6">
+              Full access to treasury intelligence features for authorized 210k
+              Capital team members.
+            </p>
 
-              <p
-                className={`mt-4 text-sm leading-6 ${
-                  tier.highlight
-                    ? "text-primary-foreground/80"
-                    : "text-muted-foreground"
-                }`}
-              >
-                {tier.description}
-              </p>
+            <ul className="text-muted-foreground mt-8 space-y-3 text-sm leading-6">
+              {features.map(feature => (
+                <li key={feature} className="flex gap-x-3">
+                  <Check
+                    className="text-primary h-6 w-5 flex-none"
+                    aria-hidden="true"
+                  />
+                  {feature}
+                </li>
+              ))}
+            </ul>
 
-              <p className="mt-6 flex items-baseline gap-x-1">
-                <span
-                  className={`text-4xl font-bold tracking-tight ${
-                    tier.highlight
-                      ? "text-primary-foreground"
-                      : "text-foreground"
-                  }`}
-                >
-                  {tier.price}
-                </span>
-                <span
-                  className={`text-sm leading-6 font-semibold ${
-                    tier.highlight
-                      ? "text-primary-foreground/80"
-                      : "text-muted-foreground"
-                  }`}
-                >
-                  {tier.period}
-                </span>
-              </p>
-
-              <ul
-                className={`mt-8 space-y-3 text-sm leading-6 ${
-                  tier.highlight
-                    ? "text-primary-foreground/80"
-                    : "text-muted-foreground"
-                }`}
-              >
-                {tier.features.map(feature => (
-                  <li key={feature} className="flex gap-x-3">
-                    <Check
-                      className={`h-6 w-5 flex-none ${
-                        tier.highlight
-                          ? "text-primary-foreground"
-                          : "text-primary"
-                      }`}
-                      aria-hidden="true"
-                    />
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-
-              {tier.paymentLink ? (
-                <PricingButton
-                  paymentLink={tier.paymentLink}
-                  className={`mt-8 w-full ${
-                    tier.highlight
-                      ? "bg-primary-foreground text-primary hover:bg-primary-foreground/90"
-                      : ""
-                  }`}
-                  variant={tier.highlight ? "default" : "outline"}
-                >
-                  Get started
-                </PricingButton>
-              ) : (
-                <Button
-                  className={`mt-8 w-full ${
-                    tier.highlight
-                      ? "bg-primary-foreground text-primary hover:bg-primary-foreground/90"
-                      : ""
-                  }`}
-                  variant={tier.highlight ? "default" : "outline"}
-                  disabled
-                >
-                  Configure payment link
-                </Button>
-              )}
-            </motion.div>
-          ))}
+            <Button className="mt-8 w-full" asChild>
+              <Link href="/login">
+                <Shield className="mr-2 h-4 w-4" />
+                Sign in to access
+              </Link>
+            </Button>
+          </motion.div>
         </div>
 
         <motion.div
@@ -206,7 +89,7 @@ export function PricingSection() {
           transition={{ duration: 0.5, delay: 0.3 }}
         >
           <p className="text-muted-foreground text-sm">
-            All plans include a 30-day money-back guarantee. No questions asked.
+            Contact an administrator if you need access to the platform.
           </p>
         </motion.div>
       </div>

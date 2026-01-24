@@ -20,7 +20,6 @@ import {
 import { useClerk } from "@clerk/nextjs"
 import {
   ChevronsUpDown,
-  CreditCard,
   HelpCircle,
   LogOut,
   Moon,
@@ -37,7 +36,7 @@ export function NavUser({
     name: string
     email: string
     avatar: string
-    membership: string
+    role: string
   }
 }) {
   const { isMobile } = useSidebar()
@@ -70,10 +69,10 @@ export function NavUser({
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{user.name}</span>
                 <Badge
-                  variant={user.membership === "pro" ? "default" : "secondary"}
+                  variant={user.role === "admin" ? "default" : "secondary"}
                   className="mt-0.5 w-fit px-2 py-0 text-xs"
                 >
-                  {user.membership === "pro" ? "Pro" : "Free"}
+                  {user.role === "admin" ? "Admin" : "Viewer"}
                 </Badge>
               </div>
               <ChevronsUpDown className="ml-auto size-4" />
@@ -105,12 +104,6 @@ export function NavUser({
                 <Link href="/dashboard/account">
                   <User />
                   Account
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/dashboard/billing">
-                  <CreditCard />
-                  Billing
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>

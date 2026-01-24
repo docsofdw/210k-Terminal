@@ -32,7 +32,7 @@ This platform addresses these gaps while maintaining the calculation logic the t
 |------------|-------|
 | Budget | < $500/year (hosting + APIs) |
 | Timeline | 6-10 weeks full build |
-| Starting template | mckays-app-template (Next.js + Supabase + Clerk) |
+| Starting template | Next.js 15 + Supabase + Clerk |
 | Backup requirement | Google Sheets must remain as manual backup |
 
 ## User Roles

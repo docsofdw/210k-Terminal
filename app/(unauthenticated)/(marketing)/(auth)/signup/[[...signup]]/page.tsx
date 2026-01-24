@@ -2,7 +2,7 @@
 
 import { SignUp } from "@clerk/nextjs"
 import { dark } from "@clerk/themes"
-import { Star, Users, BookOpen, Trophy, CheckCircle } from "lucide-react"
+import { BarChart3, Bitcoin, Building2, TrendingUp } from "lucide-react"
 import { useTheme } from "next-themes"
 import Link from "next/link"
 import { motion } from "framer-motion"
@@ -27,7 +27,7 @@ export default function SignUpPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
             >
-              Build your next big idea
+              210k Terminal
             </motion.h1>
             <motion.p
               className="text-muted-foreground text-lg"
@@ -35,8 +35,8 @@ export default function SignUpPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
             >
-              Get instant access to a production-ready app template with
-              everything you need to launch quickly.
+              Track and analyze Bitcoin treasury companies with real-time data
+              and comprehensive analytics.
             </motion.p>
           </div>
 
@@ -44,24 +44,24 @@ export default function SignUpPage() {
           <div className="grid grid-cols-2 gap-4">
             {[
               {
-                icon: BookOpen,
-                title: "Full Stack Ready",
-                desc: "Complete setup included"
+                icon: Building2,
+                title: "15+ Companies",
+                desc: "Treasury comps table"
               },
               {
-                icon: Users,
-                title: "Authentication",
-                desc: "Clerk pre-configured"
+                icon: Bitcoin,
+                title: "Real-time BTC",
+                desc: "Live price updates"
               },
               {
-                icon: Trophy,
-                title: "Production Ready",
-                desc: "Launch immediately"
+                icon: BarChart3,
+                title: "Analytics",
+                desc: "mNAV & metrics"
               },
               {
-                icon: Star,
-                title: "Modern Stack",
-                desc: "Next.js 15 + TypeScript"
+                icon: TrendingUp,
+                title: "Portfolio",
+                desc: "Position tracking"
               }
             ].map((feature, i) => (
               <motion.div
@@ -85,7 +85,7 @@ export default function SignUpPage() {
                     delay: 0.4 + i * 0.1
                   }}
                 >
-                  <feature.icon className="text-primary mb-2 h-8 w-8" />
+                  <feature.icon className="text-orange-500 mb-2 h-8 w-8" />
                 </motion.div>
                 <p className="text-sm font-semibold">{feature.title}</p>
                 <p className="text-muted-foreground text-xs">{feature.desc}</p>
@@ -93,81 +93,15 @@ export default function SignUpPage() {
             ))}
           </div>
 
-          {/* Social proof */}
+          {/* Platform info */}
           <motion.div
-            className="space-y-4"
+            className="flex items-center gap-3 rounded-lg border border-orange-200 bg-orange-50 p-4 dark:border-orange-800 dark:bg-orange-950/20"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.7 }}
           >
-            <div className="flex items-center gap-2">
-              <div className="flex">
-                {[...Array(5)].map((_, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0, scale: 0 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{
-                      type: "spring",
-                      stiffness: 500,
-                      damping: 15,
-                      delay: 0.8 + i * 0.05
-                    }}
-                  >
-                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                  </motion.div>
-                ))}
-              </div>
-              <span className="text-sm font-medium">4.9/5</span>
-              <span className="text-muted-foreground text-sm">
-                (1,200+ developers)
-              </span>
-            </div>
-            <div className="flex -space-x-2">
-              {[...Array(4)].map((_, i) => (
-                <motion.div
-                  key={i}
-                  className="border-background bg-muted h-8 w-8 rounded-full border-2"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.3, delay: 0.9 + i * 0.05 }}
-                  whileHover={{ y: -2 }}
-                />
-              ))}
-              <motion.div
-                className="border-background bg-muted flex h-8 w-8 items-center justify-center rounded-full border-2 text-xs font-medium"
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.3, delay: 1.1 }}
-                whileHover={{ y: -2 }}
-              >
-                +2k
-              </motion.div>
-            </div>
-          </motion.div>
-
-          {/* Money-back guarantee */}
-          <motion.div
-            className="flex items-center gap-3 rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-950/20"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 1.2 }}
-            whileHover={{
-              scale: 1.02,
-              boxShadow: "0 4px 15px rgba(34, 197, 94, 0.2)"
-            }}
-          >
-            <motion.div
-              animate={{ scale: [1, 1.2, 1] }}
-              transition={{
-                duration: 2,
-                repeat: Infinity,
-                repeatType: "reverse"
-              }}
-            >
-              <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
-            </motion.div>
-            <p className="text-sm font-medium">100% Free & Open Source</p>
+            <Bitcoin className="h-5 w-5 text-orange-500" />
+            <p className="text-sm font-medium">210k Terminal</p>
           </motion.div>
         </motion.div>
 

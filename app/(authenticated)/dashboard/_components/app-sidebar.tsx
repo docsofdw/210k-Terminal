@@ -1,6 +1,17 @@
 "use client"
 
-import { Link, Settings2, User, Users } from "lucide-react"
+import {
+  BarChart3,
+  Bell,
+  Building2,
+  History,
+  LayoutDashboard,
+  Settings2,
+  Star,
+  TrendingUp,
+  Users,
+  Wallet
+} from "lucide-react"
 import * as React from "react"
 
 import {
@@ -22,73 +33,107 @@ export function AppSidebar({
     name: string
     email: string
     avatar: string
-    membership: string
+    role: string
   }
 }) {
+  const isAdmin = userData.role === "admin"
+
   const data = {
     user: userData,
     teams: [
       {
-        name: "Personal",
-        logo: User,
-        plan: "Account"
-      },
-      {
-        name: "Team 1",
-        logo: Users,
-        plan: "Team"
-      },
-      {
-        name: "Team 2",
-        logo: Users,
-        plan: "Team"
-      },
-      {
-        name: "Team 3",
-        logo: Users,
-        plan: "Team"
+        name: "210k Terminal",
+        logo: TrendingUp,
+        plan: "Treasury Analytics"
       }
     ],
     navMain: [
       {
-        title: "Nav Item 1",
+        title: "Markets",
         url: "#",
-        icon: Link,
+        icon: LayoutDashboard,
         items: [
           {
-            title: "Sub Item 1",
-            url: "/dashboard/nav-item-1"
+            title: "Comps Table",
+            url: "/dashboard/comps"
           },
           {
-            title: "Sub Item 2",
-            url: "/dashboard/nav-item-2"
+            title: "Watchlist",
+            url: "/dashboard/watchlist"
           }
         ]
       },
       {
-        title: "Nav Item 2",
+        title: "Portfolio",
         url: "#",
-        icon: Link,
+        icon: Wallet,
         items: [
           {
-            title: "Sub Item 1",
-            url: "/dashboard/nav-item-1"
+            title: "Positions",
+            url: "/dashboard/portfolio"
+          },
+          {
+            title: "Transactions",
+            url: "/dashboard/portfolio/transactions"
           }
         ]
       },
       {
-        title: "Settings",
+        title: "Analytics",
         url: "#",
-        icon: Settings2,
+        icon: BarChart3,
         items: [
           {
-            title: "General",
-            url: "/dashboard/settings"
+            title: "Charts",
+            url: "/dashboard/charts"
+          },
+          {
+            title: "History",
+            url: "/dashboard/history"
           }
         ]
-      }
+      },
+      {
+        title: "Alerts",
+        url: "#",
+        icon: Bell,
+        items: [
+          {
+            title: "Manage",
+            url: "/dashboard/alerts"
+          },
+          {
+            title: "History",
+            url: "/dashboard/alerts/history"
+          }
+        ]
+      },
+      ...(isAdmin
+        ? [
+            {
+              title: "Admin",
+              url: "#",
+              icon: Settings2,
+              items: [
+                {
+                  title: "Companies",
+                  url: "/dashboard/admin/companies"
+                },
+                {
+                  title: "Users",
+                  url: "/dashboard/admin/users"
+                },
+                {
+                  title: "Audit Log",
+                  url: "/dashboard/admin/audit"
+                }
+              ]
+            }
+          ]
+        : [])
     ]
   }
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>

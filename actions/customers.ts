@@ -2,7 +2,6 @@
 
 import { db } from "@/db"
 import { customers, type SelectCustomer } from "@/db/schema/customers"
-import { currentUser } from "@clerk/nextjs/server"
 import { eq } from "drizzle-orm"
 
 export async function getCustomerByUserId(
@@ -15,40 +14,19 @@ export async function getCustomerByUserId(
   return customer || null
 }
 
-export async function getBillingDataByUserId(userId: string): Promise<{
-  customer: SelectCustomer | null
-  clerkEmail: string | null
-  stripeEmail: string | null
-}> {
-  // Get Clerk user data
-  const user = await currentUser()
-
-  // Get profile to fetch Stripe customer ID
-  const customer = await db.query.customers.findFirst({
-    where: eq(customers.userId, userId)
-  })
-
-  // Get Stripe email if it exists
-  const stripeEmail = customer?.stripeCustomerId
-    ? user?.emailAddresses[0]?.emailAddress || null
-    : null
-
-  return {
-    customer: customer || null,
-    clerkEmail: user?.emailAddresses[0]?.emailAddress || null,
-    stripeEmail
-  }
-}
-
 export async function createCustomer(
-  userId: string
+  userId: string,
+  name?: string,
+  email?: string
 ): Promise<{ isSuccess: boolean; data?: SelectCustomer }> {
   try {
     const [newCustomer] = await db
       .insert(customers)
       .values({
         userId,
-        membership: "free"
+        name,
+        email,
+        role: "viewer"
       })
       .returning()
 
@@ -70,7 +48,10 @@ export async function updateCustomerByUserId(
   try {
     const [updatedCustomer] = await db
       .update(customers)
-      .set(updates)
+      .set({
+        ...updates,
+        updatedAt: new Date()
+      })
       .where(eq(customers.userId, userId))
       .returning()
 
@@ -85,24 +66,17 @@ export async function updateCustomerByUserId(
   }
 }
 
-export async function updateCustomerByStripeCustomerId(
-  stripeCustomerId: string,
-  updates: Partial<SelectCustomer>
+export async function getAllCustomers(): Promise<SelectCustomer[]> {
+  const allCustomers = await db.query.customers.findMany({
+    orderBy: (customers, { asc }) => [asc(customers.createdAt)]
+  })
+
+  return allCustomers
+}
+
+export async function setCustomerRole(
+  userId: string,
+  role: "admin" | "viewer"
 ): Promise<{ isSuccess: boolean; data?: SelectCustomer }> {
-  try {
-    const [updatedCustomer] = await db
-      .update(customers)
-      .set(updates)
-      .where(eq(customers.stripeCustomerId, stripeCustomerId))
-      .returning()
-
-    if (!updatedCustomer) {
-      return { isSuccess: false }
-    }
-
-    return { isSuccess: true, data: updatedCustomer }
-  } catch (error) {
-    console.error("Error updating customer by stripeCustomerId:", error)
-    return { isSuccess: false }
-  }
+  return updateCustomerByUserId(userId, { role })
 }
