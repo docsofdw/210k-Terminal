@@ -11,6 +11,10 @@
     {
       "path": "/api/cron/fx-rates",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/daily-snapshot",
+      "schedule": "0 0 * * *"
     }
   ]
 }

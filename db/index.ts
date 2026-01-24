@@ -9,11 +9,13 @@ import { auditLog } from "./schema/audit-log"
 import { btcPrices } from "./schema/btc-prices"
 import { companies } from "./schema/companies"
 import { customers } from "./schema/customers"
+import { dailySnapshots, marketSnapshots } from "./schema/daily-snapshots"
 import { fxRates } from "./schema/fx-rates"
 import { holdingsSnapshots } from "./schema/holdings-snapshots"
 import { portfolioPositions } from "./schema/portfolio-positions"
 import { portfolioTransactions } from "./schema/portfolio-transactions"
 import { stockPrices } from "./schema/stock-prices"
+import { watchlist } from "./schema/watchlist"
 
 config({ path: ".env.local" })
 
@@ -34,6 +36,8 @@ const dbSchema = {
 
   // Snapshots
   holdingsSnapshots,
+  dailySnapshots,
+  marketSnapshots,
 
   // Portfolio
   portfolioPositions,
@@ -44,7 +48,10 @@ const dbSchema = {
   alertHistory,
 
   // Audit
-  auditLog
+  auditLog,
+
+  // Watchlist
+  watchlist
 }
 
 function initializeDb(url: string) {
