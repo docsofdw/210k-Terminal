@@ -1,0 +1,16 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/btc-price",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/stock-prices",
+      "schedule": "*/15 9-16 * * 1-5"
+    },
+    {
+      "path": "/api/cron/fx-rates",
+      "schedule": "0 6 * * *"
+    }
+  ]
+}

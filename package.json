@@ -48,7 +48,8 @@
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
     "sonner": "^2.0.5",
-    "tailwind-merge": "^3.3.0"
+    "tailwind-merge": "^3.3.0",
+    "yahoo-finance2": "^3.13.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
