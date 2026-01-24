@@ -10,7 +10,7 @@ import {
 } from "drizzle-orm/pg-core"
 
 export const companyStatus = pgEnum("company_status", ["active", "inactive"])
-export const currency = pgEnum("currency", ["USD", "CAD", "EUR", "GBP", "JPY", "HKD", "AUD"])
+export const currency = pgEnum("currency", ["USD", "CAD", "EUR", "GBP", "JPY", "HKD", "AUD", "BRL", "THB", "KRW"])
 
 export const companies = pgTable("companies", {
   id: uuid("id").defaultRandom().primaryKey(),

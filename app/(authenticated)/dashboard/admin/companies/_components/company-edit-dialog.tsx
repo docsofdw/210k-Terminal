@@ -70,7 +70,7 @@ export function CompanyEditDialog({
         ticker: formData.ticker,
         yahooTicker: formData.yahooTicker,
         exchange: formData.exchange,
-        tradingCurrency: formData.tradingCurrency as "USD" | "CAD" | "EUR" | "GBP" | "JPY" | "HKD" | "AUD",
+        tradingCurrency: formData.tradingCurrency as "USD" | "CAD" | "EUR" | "GBP" | "JPY" | "HKD" | "AUD" | "BRL" | "THB" | "KRW",
         country: formData.country,
         sector: formData.sector || null,
         website: formData.website || null,
@@ -155,7 +155,7 @@ export function CompanyEditDialog({
               <Label htmlFor="tradingCurrency">Currency</Label>
               <Select
                 value={formData.tradingCurrency}
-                onValueChange={value => setFormData({ ...formData, tradingCurrency: value as "USD" | "CAD" | "EUR" | "GBP" | "JPY" | "HKD" | "AUD" })}
+                onValueChange={value => setFormData({ ...formData, tradingCurrency: value as "USD" | "CAD" | "EUR" | "GBP" | "JPY" | "HKD" | "AUD" | "BRL" | "THB" | "KRW" })}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -168,6 +168,9 @@ export function CompanyEditDialog({
                   <SelectItem value="JPY">JPY</SelectItem>
                   <SelectItem value="HKD">HKD</SelectItem>
                   <SelectItem value="AUD">AUD</SelectItem>
+                  <SelectItem value="BRL">BRL</SelectItem>
+                  <SelectItem value="THB">THB</SelectItem>
+                  <SelectItem value="KRW">KRW</SelectItem>
                 </SelectContent>
               </Select>
             </div>
