@@ -6,11 +6,20 @@ import {
   type InsertCompany,
   type SelectCompany
 } from "@/db/schema/companies"
-import { eq, desc, asc } from "drizzle-orm"
+import { eq, desc } from "drizzle-orm"
+import { logAudit } from "./audit"
 
 export async function getAllCompanies(): Promise<SelectCompany[]> {
   const allCompanies = await db.query.companies.findMany({
     where: eq(companies.isTracked, true),
+    orderBy: [desc(companies.btcHoldings)]
+  })
+
+  return allCompanies
+}
+
+export async function getAllCompaniesAdmin(): Promise<SelectCompany[]> {
+  const allCompanies = await db.query.companies.findMany({
     orderBy: [desc(companies.btcHoldings)]
   })
 
@@ -47,6 +56,16 @@ export async function createCompany(
       return { isSuccess: false, error: "Failed to create company" }
     }
 
+    // Log audit
+    await logAudit({
+      action: "create",
+      entity: "company",
+      entityId: newCompany.id,
+      entityName: newCompany.name,
+      changesAfter: newCompany as unknown as Record<string, unknown>,
+      description: `Created company: ${newCompany.name} (${newCompany.ticker})`
+    })
+
     return { isSuccess: true, data: newCompany }
   } catch (error) {
     console.error("Error creating company:", error)
@@ -62,6 +81,12 @@ export async function updateCompany(
   updates: Partial<InsertCompany>
 ): Promise<{ isSuccess: boolean; data?: SelectCompany; error?: string }> {
   try {
+    // Get current state for audit
+    const currentCompany = await getCompanyById(id)
+    if (!currentCompany) {
+      return { isSuccess: false, error: "Company not found" }
+    }
+
     const [updatedCompany] = await db
       .update(companies)
       .set({
@@ -72,8 +97,19 @@ export async function updateCompany(
       .returning()
 
     if (!updatedCompany) {
-      return { isSuccess: false, error: "Company not found" }
+      return { isSuccess: false, error: "Failed to update company" }
     }
+
+    // Log audit with before/after
+    await logAudit({
+      action: "update",
+      entity: "company",
+      entityId: updatedCompany.id,
+      entityName: updatedCompany.name,
+      changesBefore: currentCompany as unknown as Record<string, unknown>,
+      changesAfter: updatedCompany as unknown as Record<string, unknown>,
+      description: `Updated company: ${updatedCompany.name}`
+    })
 
     return { isSuccess: true, data: updatedCompany }
   } catch (error) {
@@ -90,18 +126,49 @@ export async function updateCompanyHoldings(
   btcHoldings: string,
   source?: string
 ): Promise<{ isSuccess: boolean; data?: SelectCompany; error?: string }> {
-  return updateCompany(id, {
+  const company = await getCompanyById(id)
+  const result = await updateCompany(id, {
     btcHoldings,
     btcHoldingsDate: new Date(),
     btcHoldingsSource: source || "Manual update"
   })
+
+  if (result.isSuccess && company) {
+    // Additional specific audit for holdings change
+    await logAudit({
+      action: "update",
+      entity: "holdings",
+      entityId: id,
+      entityName: company.name,
+      changesBefore: { btcHoldings: company.btcHoldings },
+      changesAfter: { btcHoldings },
+      description: `Updated BTC holdings for ${company.name}: ${company.btcHoldings} → ${btcHoldings}`
+    })
+  }
+
+  return result
 }
 
 export async function deleteCompany(
   id: string
 ): Promise<{ isSuccess: boolean; error?: string }> {
   try {
+    // Get company for audit
+    const company = await getCompanyById(id)
+
     await db.delete(companies).where(eq(companies.id, id))
+
+    if (company) {
+      await logAudit({
+        action: "delete",
+        entity: "company",
+        entityId: id,
+        entityName: company.name,
+        changesBefore: company as unknown as Record<string, unknown>,
+        description: `Deleted company: ${company.name} (${company.ticker})`
+      })
+    }
+
     return { isSuccess: true }
   } catch (error) {
     console.error("Error deleting company:", error)

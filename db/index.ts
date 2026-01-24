@@ -3,6 +3,7 @@ import { drizzle as drizzlePostgres } from "drizzle-orm/postgres-js"
 import postgres from "postgres"
 
 // Schema imports
+import { auditLog } from "./schema/audit-log"
 import { btcPrices } from "./schema/btc-prices"
 import { companies } from "./schema/companies"
 import { customers } from "./schema/customers"
@@ -28,7 +29,10 @@ const dbSchema = {
   fxRates,
 
   // Snapshots
-  holdingsSnapshots
+  holdingsSnapshots,
+
+  // Audit
+  auditLog
 }
 
 function initializeDb(url: string) {

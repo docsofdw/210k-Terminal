@@ -1,32 +1,15 @@
-import { getAllCustomers, getCustomerByUserId } from "@/actions/customers"
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from "@/components/ui/table"
-import { auth } from "@clerk/nextjs/server"
+import { getAllCustomers } from "@/actions/customers"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { requireAdmin } from "@/lib/auth/permissions"
 import { Shield, Users } from "lucide-react"
-import { redirect } from "next/navigation"
+import { UsersTable } from "./_components/users-table"
 
 export default async function AdminUsersPage() {
-  const { userId } = await auth()
-
-  if (!userId) {
-    redirect("/login")
-  }
-
-  const customer = await getCustomerByUserId(userId)
-
-  if (!customer || customer.role !== "admin") {
-    redirect("/dashboard")
-  }
-
+  const currentUser = await requireAdmin()
   const users = await getAllCustomers()
+
+  const adminCount = users.filter(u => u.role === "admin").length
+  const viewerCount = users.filter(u => u.role === "viewer").length
 
   return (
     <div className="space-y-6">
@@ -36,54 +19,44 @@ export default async function AdminUsersPage() {
           Manage Users
         </h1>
         <p className="text-muted-foreground">
-          View and manage user roles
+          View and manage user roles. Role changes are logged.
         </p>
       </div>
 
+      {/* Stats */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>Total Users</CardDescription>
+            <CardTitle className="text-2xl">{users.length}</CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription className="flex items-center gap-1">
+              <Shield className="h-3 w-3" /> Admins
+            </CardDescription>
+            <CardTitle className="text-2xl">{adminCount}</CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>Viewers</CardDescription>
+            <CardTitle className="text-2xl">{viewerCount}</CardTitle>
+          </CardHeader>
+        </Card>
+      </div>
+
+      {/* Users Table */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" />
-            User Management
-          </CardTitle>
+          <CardTitle>All Users</CardTitle>
+          <CardDescription>
+            Manage user access levels. You cannot change your own role.
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Created</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {users.map(user => (
-                  <TableRow key={user.id}>
-                    <TableCell className="font-medium">
-                      {user.name || "—"}
-                    </TableCell>
-                    <TableCell>{user.email || "—"}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={user.role === "admin" ? "default" : "secondary"}
-                      >
-                        {user.role}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {user.createdAt.toLocaleDateString()}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-
-          <p className="mt-4 text-sm text-muted-foreground">
-            Role editing will be added in Phase 4.
-          </p>
+          <UsersTable users={users} currentUserId={currentUser.userId} />
         </CardContent>
       </Card>
     </div>
