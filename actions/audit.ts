@@ -7,7 +7,7 @@ import { auth } from "@clerk/nextjs/server"
 import { getCustomerByUserId } from "./customers"
 
 type AuditAction = "create" | "update" | "delete"
-type AuditEntity = "company" | "holdings" | "user" | "alert" | "portfolio"
+type AuditEntity = "company" | "holdings" | "user" | "alert" | "portfolio" | "position" | "transaction"
 
 interface LogAuditParams {
   action: AuditAction

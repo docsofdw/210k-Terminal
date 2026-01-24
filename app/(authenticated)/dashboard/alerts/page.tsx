@@ -1,33 +1,82 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { getAllCompanies } from "@/actions/companies"
+import { getAlertsWithCompanies } from "@/actions/alerts"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { requireAuth } from "@/lib/auth/permissions"
 import { Bell } from "lucide-react"
+import { AddAlertDialog } from "./_components/add-alert-dialog"
+import { AlertsTable } from "./_components/alerts-table"
 
-export default function AlertsPage() {
+export default async function AlertsPage() {
+  await requireAuth()
+
+  const [alerts, companies] = await Promise.all([
+    getAlertsWithCompanies(),
+    getAllCompanies()
+  ])
+
+  const activeCount = alerts.filter(a => a.alert.status === "active").length
+  const pausedCount = alerts.filter(a => a.alert.status === "paused").length
+  const totalTriggers = alerts.reduce(
+    (sum, a) => sum + parseInt(a.alert.triggerCount?.toString() || "0"),
+    0
+  )
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="flex items-center gap-2 text-3xl font-bold tracking-tight">
-          <Bell className="h-8 w-8 text-muted-foreground" />
-          Alerts
-        </h1>
-        <p className="text-muted-foreground">
-          Configure price and mNAV alerts
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
+            <Bell className="h-6 w-6 text-terminal-orange" />
+            Alerts
+          </h1>
+          <p className="text-xs text-muted-foreground">
+            Configure price and mNAV alerts
+          </p>
+        </div>
+        <AddAlertDialog companies={companies} />
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        <div className="rounded-sm border border-border/50 bg-card p-3">
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+            Total Alerts
+          </div>
+          <div className="text-xl font-bold text-terminal-orange">
+            {alerts.length}
+          </div>
+        </div>
+        <div className="rounded-sm border border-border/50 bg-card p-3">
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+            Active
+          </div>
+          <div className="text-xl font-bold text-positive">{activeCount}</div>
+        </div>
+        <div className="rounded-sm border border-border/50 bg-card p-3">
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+            Paused
+          </div>
+          <div className="text-xl font-bold text-terminal-yellow">
+            {pausedCount}
+          </div>
+        </div>
+        <div className="rounded-sm border border-border/50 bg-card p-3">
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+            Total Triggers
+          </div>
+          <div className="text-xl font-bold">{totalTriggers}</div>
+        </div>
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Coming Soon</CardTitle>
+        <CardHeader className="pb-3">
+          <CardTitle>Configured Alerts</CardTitle>
+          <CardDescription>
+            Your price, mNAV, and holdings change alerts
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground">
-            Alert management will be implemented in Phase 5. This will include:
-          </p>
-          <ul className="mt-4 list-disc list-inside text-muted-foreground space-y-1">
-            <li>Price threshold alerts</li>
-            <li>mNAV change notifications</li>
-            <li>Telegram and Slack integration</li>
-            <li>Custom alert conditions</li>
-          </ul>
+          <AlertsTable alerts={alerts} />
         </CardContent>
       </Card>
     </div>

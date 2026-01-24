@@ -12,7 +12,9 @@ export const auditEntity = pgEnum("audit_entity", [
   "holdings",
   "user",
   "alert",
-  "portfolio"
+  "portfolio",
+  "position",
+  "transaction"
 ])
 
 export const auditLog = pgTable(

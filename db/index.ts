@@ -3,12 +3,16 @@ import { drizzle as drizzlePostgres } from "drizzle-orm/postgres-js"
 import postgres from "postgres"
 
 // Schema imports
+import { alertHistory } from "./schema/alert-history"
+import { alerts } from "./schema/alerts"
 import { auditLog } from "./schema/audit-log"
 import { btcPrices } from "./schema/btc-prices"
 import { companies } from "./schema/companies"
 import { customers } from "./schema/customers"
 import { fxRates } from "./schema/fx-rates"
 import { holdingsSnapshots } from "./schema/holdings-snapshots"
+import { portfolioPositions } from "./schema/portfolio-positions"
+import { portfolioTransactions } from "./schema/portfolio-transactions"
 import { stockPrices } from "./schema/stock-prices"
 
 config({ path: ".env.local" })
@@ -30,6 +34,14 @@ const dbSchema = {
 
   // Snapshots
   holdingsSnapshots,
+
+  // Portfolio
+  portfolioPositions,
+  portfolioTransactions,
+
+  // Alerts
+  alerts,
+  alertHistory,
 
   // Audit
   auditLog
