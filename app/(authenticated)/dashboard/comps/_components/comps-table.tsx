@@ -1,6 +1,14 @@
 "use client"
 
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select"
 import {
   Table,
   TableBody,
@@ -21,9 +29,10 @@ import {
   type CompanyMetrics
 } from "@/lib/calculations"
 import { SelectCompany } from "@/db/schema/companies"
-import { ArrowDown, ArrowUp, ArrowUpDown, ExternalLink } from "lucide-react"
+import { ArrowDown, ArrowUp, ArrowUpDown, ExternalLink, Search, X } from "lucide-react"
 import Link from "next/link"
 import { useState, useMemo } from "react"
+import { Button } from "@/components/ui/button"
 
 interface CompsTableProps {
   companies: SelectCompany[]
@@ -49,6 +58,16 @@ export function CompsTable({
 }: CompsTableProps) {
   const [sortField, setSortField] = useState<SortField>("btcHoldings")
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc")
+  const [searchQuery, setSearchQuery] = useState("")
+  const [exchangeFilter, setExchangeFilter] = useState<string>("all")
+  const [currencyFilter, setCurrencyFilter] = useState<string>("all")
+
+  // Extract unique exchanges and currencies for filter options
+  const filterOptions = useMemo(() => {
+    const exchanges = [...new Set(companies.map(c => c.exchange))].sort()
+    const currencies = [...new Set(companies.map(c => c.tradingCurrency))].sort()
+    return { exchanges, currencies }
+  }, [companies])
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -107,8 +126,33 @@ export function CompsTable({
     })
   }, [companies, btcPrice, stockPrices, fxRates])
 
+  // Apply filters
+  const filteredCompanies = useMemo(() => {
+    return companiesWithMetrics.filter(item => {
+      // Search filter
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase()
+        const matchesName = item.company.name.toLowerCase().includes(query)
+        const matchesTicker = item.company.ticker.toLowerCase().includes(query)
+        if (!matchesName && !matchesTicker) return false
+      }
+
+      // Exchange filter
+      if (exchangeFilter !== "all" && item.company.exchange !== exchangeFilter) {
+        return false
+      }
+
+      // Currency filter
+      if (currencyFilter !== "all" && item.company.tradingCurrency !== currencyFilter) {
+        return false
+      }
+
+      return true
+    })
+  }, [companiesWithMetrics, searchQuery, exchangeFilter, currencyFilter])
+
   const sortedCompanies = useMemo(() => {
-    return [...companiesWithMetrics].sort((a, b) => {
+    return [...filteredCompanies].sort((a, b) => {
       let comparison = 0
 
       switch (sortField) {
@@ -135,10 +179,77 @@ export function CompsTable({
 
       return sortDirection === "asc" ? comparison : -comparison
     })
-  }, [companiesWithMetrics, sortField, sortDirection])
+  }, [filteredCompanies, sortField, sortDirection])
+
+  const hasActiveFilters = searchQuery || exchangeFilter !== "all" || currencyFilter !== "all"
+
+  const clearFilters = () => {
+    setSearchQuery("")
+    setExchangeFilter("all")
+    setCurrencyFilter("all")
+  }
 
   return (
-    <div className="rounded-md border">
+    <div className="space-y-4">
+      {/* Filter Bar */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 min-w-[200px] max-w-sm">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search by name or ticker..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+
+        <Select value={exchangeFilter} onValueChange={setExchangeFilter}>
+          <SelectTrigger className="w-[140px]">
+            <SelectValue placeholder="Exchange" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Exchanges</SelectItem>
+            {filterOptions.exchanges.map(exchange => (
+              <SelectItem key={exchange} value={exchange}>
+                {exchange}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={currencyFilter} onValueChange={setCurrencyFilter}>
+          <SelectTrigger className="w-[130px]">
+            <SelectValue placeholder="Currency" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Currencies</SelectItem>
+            {filterOptions.currencies.map(currency => (
+              <SelectItem key={currency} value={currency}>
+                {currency}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {hasActiveFilters && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={clearFilters}
+            className="h-9 px-2 text-muted-foreground hover:text-foreground"
+          >
+            <X className="mr-1 h-4 w-4" />
+            Clear
+          </Button>
+        )}
+
+        <div className="ml-auto text-sm text-muted-foreground">
+          {sortedCompanies.length} of {companies.length} companies
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="rounded-md border">
       <Table>
         <TableHeader>
           <TableRow>
@@ -255,6 +366,7 @@ export function CompsTable({
           ))}
         </TableBody>
       </Table>
+      </div>
     </div>
   )
 }

@@ -5,12 +5,22 @@ import { BarChart3, Bitcoin, TrendingUp, Layers } from "lucide-react"
 import { MNavChart } from "./_components/mnav-chart"
 import { HoldingsChart } from "./_components/holdings-chart"
 import { BtcPriceChart } from "./_components/btc-price-chart"
+import { DateRangeSelector } from "./_components/date-range-selector"
 
-export default async function ChartsPage() {
+interface ChartsPageProps {
+  searchParams: Promise<{ days?: string }>
+}
+
+export default async function ChartsPage({ searchParams }: ChartsPageProps) {
   await requireAuth()
 
+  const params = await searchParams
+  const daysParam = params.days
+  // Parse days: 0 means ALL (use a large number), default is 90
+  const days = daysParam === "0" ? 3650 : (parseInt(daysParam || "90") || 90)
+
   const [snapshots, latestSnapshot] = await Promise.all([
-    getMarketSnapshots(90), // Last 90 days
+    getMarketSnapshots(days),
     getLatestMarketSnapshot()
   ])
 
@@ -30,14 +40,17 @@ export default async function ChartsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
-          <BarChart3 className="h-6 w-6 text-terminal-orange" />
-          Charts & Analytics
-        </h1>
-        <p className="text-xs text-muted-foreground">
-          Historical trends and market analysis
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
+            <BarChart3 className="h-6 w-6 text-terminal-orange" />
+            Charts & Analytics
+          </h1>
+          <p className="text-xs text-muted-foreground">
+            Historical trends and market analysis
+          </p>
+        </div>
+        <DateRangeSelector currentDays={days} />
       </div>
 
       {/* Summary Cards */}

@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Bitcoin, Building2, TrendingUp } from "lucide-react"
 import { BtcPriceHeader } from "./_components/btc-price-header"
 import { CompsTable } from "./_components/comps-table"
-import { FilterBar } from "./_components/filter-bar"
 
 export default async function CompsPage() {
   const [companies, btcPriceData, stockPricesMap] = await Promise.all([
@@ -120,9 +119,6 @@ export default async function CompsPage() {
           </CardContent>
         </Card>
       </div>
-
-      {/* Filter Bar */}
-      <FilterBar lastUpdated={btcPriceData?.priceAt || undefined} />
 
       {/* Main Comps Table */}
       {companies.length > 0 ? (
