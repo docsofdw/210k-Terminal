@@ -17,6 +17,7 @@
     "db:generate": "npx drizzle-kit generate",
     "db:migrate": "npx drizzle-kit migrate",
     "db:seed": "npx bun db/seed",
+    "db:sync": "npx bun db/seed/sync-from-sheets.ts",
     "test": "npm run test:unit && npm run test:e2e",
     "test:unit": "jest",
     "test:e2e": "playwright test"
