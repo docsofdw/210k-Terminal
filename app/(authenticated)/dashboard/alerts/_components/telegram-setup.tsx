@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input"
 import { CheckCircle2, ExternalLink, Loader2, MessageCircle, Copy } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
-import { connectTelegram } from "@/actions/user"
 import { useRouter } from "next/navigation"
 
 interface TelegramSetupProps {
@@ -31,9 +30,15 @@ export function TelegramSetup({ isConnected, telegramUsername }: TelegramSetupPr
     setIsLoading(true)
 
     try {
-      const result = await connectTelegram(chatId.trim())
+      const response = await fetch("/api/connect-telegram", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chatId: chatId.trim() })
+      })
 
-      if (result.isSuccess) {
+      const result = await response.json()
+
+      if (response.ok && result.success) {
         toast.success("Telegram connected successfully!")
         router.refresh()
       } else {
