@@ -1,42 +1,32 @@
-import { getAllCompanies } from "@/actions/companies"
-import { getPositionsWithCompanies } from "@/actions/portfolio"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { requireAuth } from "@/lib/auth/permissions"
 import { Wallet } from "lucide-react"
-import { AddPositionDialog } from "./_components/add-position-dialog"
-import { PositionsTable } from "./_components/positions-table"
 import { db } from "@/db"
+import { fundPositions } from "@/db/schema/fund-positions"
+import { companies } from "@/db/schema/companies"
 import { btcPrices } from "@/db/schema/btc-prices"
-import { stockPrices } from "@/db/schema/stock-prices"
 import { desc, eq } from "drizzle-orm"
+import { FundPositionsTable } from "./_components/fund-positions-table"
 
 export default async function PortfolioPage() {
   await requireAuth()
 
-  // Fetch data in parallel
-  const [positions, companies, latestBtcPrice, latestStockPrices] = await Promise.all([
-    getPositionsWithCompanies(),
-    getAllCompanies(),
-    db.query.btcPrices.findFirst({
-      orderBy: [desc(btcPrices.priceAt)]
-    }),
-    db.query.stockPrices.findMany({
-      orderBy: [desc(stockPrices.priceAt)]
+  // Fetch fund positions with company data
+  const positions = await db
+    .select({
+      position: fundPositions,
+      company: companies
     })
-  ])
+    .from(fundPositions)
+    .leftJoin(companies, eq(fundPositions.companyId, companies.id))
+    .orderBy(desc(fundPositions.valueUsd))
 
-  // Get latest price for each company (using companyId as key)
-  const stockPriceMap: Record<string, number> = {}
-  const seenCompanyIds = new Set<string>()
-  for (const price of latestStockPrices) {
-    if (!seenCompanyIds.has(price.companyId)) {
-      stockPriceMap[price.companyId] = parseFloat(price.price)
-      seenCompanyIds.add(price.companyId)
-    }
-  }
+  const latestBtcPrice = await db.query.btcPrices.findFirst({
+    orderBy: [desc(btcPrices.priceAt)]
+  })
 
   const btcPrice = latestBtcPrice ? parseFloat(latestBtcPrice.priceUsd) : 0
-  const existingCompanyIds = positions.map(p => p.company.id)
+  const lastSynced = positions[0]?.position.syncedAt
 
   return (
     <div className="space-y-6">
@@ -47,27 +37,27 @@ export default async function PortfolioPage() {
             Portfolio
           </h1>
           <p className="text-xs text-muted-foreground">
-            Track your positions in treasury companies
+            Fund positions synced from Google Sheets
+            {lastSynced && (
+              <span className="ml-2 text-muted-foreground/60">
+                · Last sync: {new Date(lastSynced).toLocaleString()}
+              </span>
+            )}
           </p>
         </div>
-        <AddPositionDialog
-          companies={companies}
-          existingCompanyIds={existingCompanyIds}
-        />
       </div>
 
       <Card>
         <CardHeader className="pb-3">
           <CardTitle>Positions</CardTitle>
           <CardDescription>
-            Your current holdings across treasury companies
+            Current fund holdings across all categories
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <PositionsTable
+          <FundPositionsTable
             positions={positions}
             btcPrice={btcPrice}
-            stockPrices={stockPriceMap}
           />
         </CardContent>
       </Card>
