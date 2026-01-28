@@ -382,7 +382,7 @@ export async function checkAllAlerts(): Promise<{
 
     // Get latest prices
     const { getLatestBtcPrice, getLatestStockPrices, getLatestFxRates } = await import("./market-data")
-    const { calculateMNav, calculateEvUsd, calculateBtcNav } = await import("@/lib/calculations")
+    const { calculateMetrics } = await import("@/lib/calculations")
 
     const btcPriceData = await getLatestBtcPrice()
     const stockPricesMap = await getLatestStockPrices()
@@ -407,21 +407,25 @@ export async function checkAllAlerts(): Promise<{
         const priceLocal = stockPrice ? Number(stockPrice.price) : 0
         const priceUsd = priceLocal * fxToUsd
 
-        // Calculate mNAV if needed
-        let currentMnav = 0
-        if (alert.type.includes("mnav")) {
-          const btcHoldings = Number(company.btcHoldings) || 0
-          const sharesOutstanding = Number(company.sharesOutstanding) || 0
-          const marketCapUsd = priceUsd * sharesOutstanding
-          const btcNav = calculateBtcNav(btcHoldings, btcPrice)
-          const evUsd = calculateEvUsd(
-            marketCapUsd,
-            Number(company.debtUsd) || 0,
-            Number(company.preferredsUsd) || 0,
-            Number(company.cashUsd) || 0
-          )
-          currentMnav = btcNav > 0 ? calculateMNav(evUsd, btcNav) : 0
-        }
+        // Calculate metrics including mNAV
+        const btcHoldings = Number(company.btcHoldings) || 0
+        const sharesOutstanding = Number(company.sharesOutstanding) || 0
+        const marketCapUsd = priceUsd * sharesOutstanding
+
+        const metrics = calculateMetrics({
+          btcHoldings,
+          btcPrice,
+          stockPrice: priceLocal,
+          sharesOutstanding,
+          marketCapUsd,
+          cashUsd: Number(company.cashUsd) || 0,
+          debtUsd: Number(company.debtUsd) || 0,
+          preferredsUsd: Number(company.preferredsUsd) || 0,
+          tradingCurrency: currency,
+          fxRate: fxToUsd
+        })
+
+        const currentMnav = metrics.mNav
 
         const threshold = alert.threshold ? parseFloat(alert.threshold) : 0
         let shouldTrigger = false
