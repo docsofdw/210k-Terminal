@@ -1,14 +1,18 @@
-import { getMarketSnapshots, getLatestMarketSnapshot } from "@/actions/snapshots"
+import { getMarketSnapshots, getLatestMarketSnapshot, getCompanySnapshotsByTicker } from "@/actions/snapshots"
+import { getAllCompanies } from "@/actions/companies"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { requireAuth } from "@/lib/auth/permissions"
-import { BarChart3, Bitcoin, TrendingUp, Layers } from "lucide-react"
+import { BarChart3, Bitcoin, TrendingUp, Layers, Building2 } from "lucide-react"
 import { MNavChart } from "./_components/mnav-chart"
 import { HoldingsChart } from "./_components/holdings-chart"
 import { BtcPriceChart } from "./_components/btc-price-chart"
 import { DateRangeSelector } from "./_components/date-range-selector"
+import { CompanySelector } from "./_components/company-selector"
+import { CompanyMNavChart } from "./_components/company-mnav-chart"
+import { CompanyPriceChart } from "./_components/company-price-chart"
 
 interface ChartsPageProps {
-  searchParams: Promise<{ days?: string }>
+  searchParams: Promise<{ days?: string; company?: string }>
 }
 
 export default async function ChartsPage({ searchParams }: ChartsPageProps) {
@@ -16,13 +20,25 @@ export default async function ChartsPage({ searchParams }: ChartsPageProps) {
 
   const params = await searchParams
   const daysParam = params.days
+  const companyTicker = params.company || null
+
   // Parse days: 0 means ALL (use a large number), default is 90
   const days = daysParam === "0" ? 3650 : (parseInt(daysParam || "90") || 90)
 
-  const [snapshots, latestSnapshot] = await Promise.all([
+  const [snapshots, latestSnapshot, companies] = await Promise.all([
     getMarketSnapshots(days),
-    getLatestMarketSnapshot()
+    getLatestMarketSnapshot(),
+    getAllCompanies()
   ])
+
+  // Fetch company-specific data if a company is selected
+  const companySnapshots = companyTicker
+    ? await getCompanySnapshotsByTicker(companyTicker, days)
+    : []
+
+  const selectedCompany = companyTicker
+    ? companies.find(c => c.ticker === companyTicker)
+    : null
 
   // Summary stats from latest snapshot
   const totalBtcHoldings = latestSnapshot?.totalBtcHoldings
@@ -50,7 +66,13 @@ export default async function ChartsPage({ searchParams }: ChartsPageProps) {
             Historical trends and market analysis
           </p>
         </div>
-        <DateRangeSelector currentDays={days} />
+        <div className="flex flex-wrap items-center gap-2">
+          <CompanySelector
+            companies={companies.map(c => ({ id: c.id, ticker: c.ticker, name: c.name }))}
+            currentTicker={companyTicker}
+          />
+          <DateRangeSelector currentDays={days} />
+        </div>
       </div>
 
       {/* Summary Cards */}
@@ -88,15 +110,57 @@ export default async function ChartsPage({ searchParams }: ChartsPageProps) {
         </div>
       </div>
 
-      {/* mNAV Chart */}
+      {/* Company-Specific Charts (when a company is selected) */}
+      {selectedCompany && (
+        <>
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2">
+                <Building2 className="h-5 w-5 text-terminal-orange" />
+                {selectedCompany.name} ({selectedCompany.ticker}) - mNAV History
+              </CardTitle>
+              <CardDescription>
+                Historical mNAV for {selectedCompany.name}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <CompanyMNavChart
+                data={companySnapshots}
+                companyName={selectedCompany.name}
+              />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-blue-500" />
+                {selectedCompany.ticker} Stock Price History
+              </CardTitle>
+              <CardDescription>
+                Historical stock price in {selectedCompany.tradingCurrency}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <CompanyPriceChart
+                data={companySnapshots}
+                companyName={selectedCompany.name}
+                currency={selectedCompany.tradingCurrency}
+              />
+            </CardContent>
+          </Card>
+        </>
+      )}
+
+      {/* Aggregate Charts (always shown) */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-terminal-orange" />
-            mNAV Trends
+            Market mNAV Trends
           </CardTitle>
           <CardDescription>
-            Average, median, and weighted average mNAV over time
+            Average, median, and weighted average mNAV across all companies
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -104,7 +168,6 @@ export default async function ChartsPage({ searchParams }: ChartsPageProps) {
         </CardContent>
       </Card>
 
-      {/* Holdings Chart */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2">
@@ -120,7 +183,6 @@ export default async function ChartsPage({ searchParams }: ChartsPageProps) {
         </CardContent>
       </Card>
 
-      {/* BTC Price Chart */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2">
