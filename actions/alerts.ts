@@ -233,6 +233,7 @@ interface TriggerAlertParams {
   companyTicker: string
   actualValue: number
   previousValue?: number
+  currency?: string
   context?: Record<string, unknown>
 }
 
@@ -245,6 +246,7 @@ export async function triggerAlert({
   companyTicker,
   actualValue,
   previousValue,
+  currency = "USD",
   context
 }: TriggerAlertParams): Promise<{ isSuccess: boolean; error?: string }> {
   try {
@@ -261,44 +263,100 @@ export async function triggerAlert({
 
     // Build message
     const threshold = alert.threshold ? parseFloat(alert.threshold) : 0
-    let messageTitle = ""
-    let messageBody = ""
+    const direction = alert.type.includes("above") || alert.type.includes("up") ? "above" : "below"
+    const directionEmoji = direction === "above" ? "⬆️" : "⬇️"
+
+    let telegramMessage = ""
+    let slackMessage = ""
 
     switch (alert.type) {
       case "price_above":
       case "price_below":
-        messageTitle = `Price Alert: ${companyTicker}`
-        messageBody = `${companyName} price is now $${actualValue.toFixed(2)} (threshold: $${threshold.toFixed(2)})`
+        telegramMessage = `${directionEmoji} <b>PRICE ALERT</b>
+
+<b>${companyName}</b> (${companyTicker})
+
+Price crossed ${direction} your threshold
+
+━━━━━━━━━━━━━━━
+📊 Current:    <b>${currency} ${actualValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b>
+🎯 Threshold:  ${currency} ${threshold.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+━━━━━━━━━━━━━━━
+
+<i>210k Terminal</i>`
+
+        slackMessage = `${directionEmoji} *PRICE ALERT*\n\n*${companyName}* (${companyTicker})\n\nPrice crossed ${direction} your threshold\n\n• Current: *${currency} ${actualValue.toFixed(2)}*\n• Threshold: ${currency} ${threshold.toFixed(2)}`
         break
+
       case "mnav_above":
       case "mnav_below":
-        messageTitle = `mNAV Alert: ${companyTicker}`
-        messageBody = `${companyName} mNAV is now ${actualValue.toFixed(2)}x (threshold: ${threshold.toFixed(2)}x)`
+        telegramMessage = `${directionEmoji} <b>mNAV ALERT</b>
+
+<b>${companyName}</b> (${companyTicker})
+
+mNAV crossed ${direction} your threshold
+
+━━━━━━━━━━━━━━━
+📊 Current:    <b>${actualValue.toFixed(2)}x</b>
+🎯 Threshold:  ${threshold.toFixed(2)}x
+━━━━━━━━━━━━━━━
+
+<i>210k Terminal</i>`
+
+        slackMessage = `${directionEmoji} *mNAV ALERT*\n\n*${companyName}* (${companyTicker})\n\nmNAV crossed ${direction} your threshold\n\n• Current: *${actualValue.toFixed(2)}x*\n• Threshold: ${threshold.toFixed(2)}x`
         break
+
       case "btc_holdings":
-        messageTitle = `Holdings Alert: ${companyTicker}`
-        messageBody = `${companyName} BTC holdings changed: ${previousValue?.toLocaleString() || "?"} → ${actualValue.toLocaleString()}`
+        const change = actualValue - (previousValue || 0)
+        const changeEmoji = change > 0 ? "🟢" : "🔴"
+        telegramMessage = `${changeEmoji} <b>BTC HOLDINGS UPDATE</b>
+
+<b>${companyName}</b> (${companyTicker})
+
+━━━━━━━━━━━━━━━
+📊 Previous:  ${previousValue?.toLocaleString() || "?"} BTC
+📊 Current:   <b>${actualValue.toLocaleString()} BTC</b>
+📈 Change:    ${change >= 0 ? "+" : ""}${change.toLocaleString()} BTC
+━━━━━━━━━━━━━━━
+
+<i>210k Terminal</i>`
+
+        slackMessage = `${changeEmoji} *BTC HOLDINGS UPDATE*\n\n*${companyName}* (${companyTicker})\n\n• Previous: ${previousValue?.toLocaleString() || "?"} BTC\n• Current: *${actualValue.toLocaleString()} BTC*\n• Change: ${change >= 0 ? "+" : ""}${change.toLocaleString()} BTC`
         break
+
       case "pct_change_up":
       case "pct_change_down":
-        const pctThreshold = alert.thresholdPercent
-          ? parseFloat(alert.thresholdPercent)
-          : 0
-        messageTitle = `% Change Alert: ${companyTicker}`
-        messageBody = `${companyName} moved ${actualValue.toFixed(2)}% (threshold: ${pctThreshold.toFixed(2)}%)`
+        const pctThreshold = alert.thresholdPercent ? parseFloat(alert.thresholdPercent) : 0
+        const pctEmoji = actualValue > 0 ? "📈" : "📉"
+        telegramMessage = `${pctEmoji} <b>PRICE MOVEMENT</b>
+
+<b>${companyName}</b> (${companyTicker})
+
+Significant price movement detected
+
+━━━━━━━━━━━━━━━
+📊 Change:     <b>${actualValue >= 0 ? "+" : ""}${actualValue.toFixed(2)}%</b>
+🎯 Threshold:  ${pctThreshold.toFixed(2)}%
+━━━━━━━━━━━━━━━
+
+<i>210k Terminal</i>`
+
+        slackMessage = `${pctEmoji} *PRICE MOVEMENT*\n\n*${companyName}* (${companyTicker})\n\n• Change: *${actualValue >= 0 ? "+" : ""}${actualValue.toFixed(2)}%*\n• Threshold: ${pctThreshold.toFixed(2)}%`
         break
     }
 
     // Send notification
     let notificationSent = false
     let notificationError: string | undefined
+    const messageTitle = `${alert.type.replace(/_/g, " ").toUpperCase()}: ${companyTicker}`
+    const messageBody = telegramMessage
 
     if (alert.channel === "telegram") {
       const chatId = alert.telegramChatId || process.env.TELEGRAM_CHAT_ID_PRIMARY
       if (chatId) {
         const result = await telegram.sendTelegramMessage({
           chatId,
-          text: `<b>${messageTitle}</b>\n\n${messageBody}`
+          text: telegramMessage
         })
         notificationSent = result.success
         notificationError = result.error
@@ -308,7 +366,7 @@ export async function triggerAlert({
       if (webhookUrl) {
         const result = await slack.sendSlackMessage({
           webhookUrl,
-          text: `*${messageTitle}*\n${messageBody}`
+          text: slackMessage
         })
         notificationSent = result.success
         notificationError = result.error
@@ -433,12 +491,14 @@ export async function checkAllAlerts(): Promise<{
 
         switch (alert.type) {
           case "price_above":
-            actualValue = priceUsd
-            shouldTrigger = priceUsd > threshold
+            // Use local price for comparison (threshold is in local currency)
+            actualValue = priceLocal
+            shouldTrigger = priceLocal > threshold
             break
           case "price_below":
-            actualValue = priceUsd
-            shouldTrigger = priceUsd < threshold
+            // Use local price for comparison (threshold is in local currency)
+            actualValue = priceLocal
+            shouldTrigger = priceLocal < threshold
             break
           case "mnav_above":
             actualValue = currentMnav
@@ -456,7 +516,8 @@ export async function checkAllAlerts(): Promise<{
             companyName: company.name,
             companyTicker: company.ticker,
             actualValue,
-            context: { btcPrice, priceUsd, currentMnav }
+            currency,
+            context: { btcPrice, priceUsd, priceLocal, currentMnav }
           })
 
           if (result.isSuccess) {
