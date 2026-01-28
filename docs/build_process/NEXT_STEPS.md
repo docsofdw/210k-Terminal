@@ -52,11 +52,14 @@ await checkAndTriggerAlerts()
 
 ### 1.3 Data Integrity Checks
 
-**Verify Calculations Match Spreadsheet**:
-- [ ] Compare mNAV for each company between app and Google Sheet
-- [ ] Compare BTC NAV values
-- [ ] Compare sats per share calculations
-- [ ] Verify FX rate conversions for non-USD stocks
+**Verified (2026-01-27)**:
+- [x] Compare mNAV for each company between app and Google Sheet ✅
+- [x] Compare BTC NAV values ✅
+- [x] Compare sats per share calculations ✅
+- [x] Verify FX rate conversions for non-USD stocks ✅
+
+**Result**: Formulas correct. Differences due to timing/source variations (BTC price, stock prices).
+See BUILD_LOG_2026-01-27.md for details.
 
 **SQL Queries for Validation**:
 ```sql
@@ -79,17 +82,18 @@ LIMIT 20;
 
 ### 2.1 Charts Page Enhancements
 
-**Current State**: Basic line/area charts with market aggregate data.
+**Current State**: Line/area charts with market aggregate data AND individual company views.
 
-**Recommended Improvements**:
+**Completed (2026-01-27)**:
 
-1. **Company Selector for Charts**
-   - Add dropdown to view individual company mNAV/price history
-   - Currently only shows aggregate market data
+1. **Company Selector for Charts** ✅
+   - Dropdown to view individual company mNAV/price history
+   - Shows company-specific charts when selected
+   - URL param persistence (`?company=TICKER`)
 
-2. **Date Range Selector**
-   - Add buttons: 7D, 30D, 90D, 1Y, ALL
-   - Currently hardcoded to 90 days
+2. **Date Range Selector** ✅
+   - Buttons: 7D, 30D, 90D (default), 1Y, ALL
+   - URL param persistence (`?days=30`)
 
 3. **Chart Tooltips**
    - Add more context (% change, company breakdown)
@@ -105,15 +109,18 @@ LIMIT 20;
 
 ### 2.2 Comps Table Enhancements
 
-**Current Gaps**:
+**Completed (2026-01-27)**:
 
-1. **Sorting**
-   - Add column header click to sort
-   - Currently no sorting UI
+1. **Sorting** ✅
+   - Column header click to sort (was already implemented)
+   - Supports: name, BTC holdings, mNAV, market cap, sats/share, premium
 
-2. **Filtering**
-   - Filter by exchange, currency, mNAV range
+2. **Filtering** ✅
+   - Filter by exchange dropdown
+   - Filter by currency dropdown
    - Search by ticker/name
+   - Shows "X of Y companies" count
+   - Clear button for active filters
 
 3. **Column Visibility**
    - Let users show/hide columns
