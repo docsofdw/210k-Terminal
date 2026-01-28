@@ -458,9 +458,10 @@ export async function checkAllAlerts(): Promise<{
         if (!stockPrice && alert.type.startsWith("price")) continue
 
         // Get FX rate for currency conversion
+        // rateFromUsd converts local currency to USD (e.g., 1 HKD = 0.128 USD)
         const currency = company.tradingCurrency || "USD"
         const fxRate = fxRatesMap.get(currency)
-        const fxToUsd = fxRate ? Number(fxRate.rateToUsd) : 1
+        const fxToUsd = fxRate ? Number(fxRate.rateFromUsd) : 1
 
         const priceLocal = stockPrice ? Number(stockPrice.price) : 0
         const priceUsd = priceLocal * fxToUsd
