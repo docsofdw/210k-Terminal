@@ -14,9 +14,7 @@ import { fxRates } from "./schema/fx-rates"
 import { fundPositions } from "./schema/fund-positions"
 import { holdingsSnapshots } from "./schema/holdings-snapshots"
 import { portfolioPositions } from "./schema/portfolio-positions"
-import { portfolioTransactions } from "./schema/portfolio-transactions"
 import { stockPrices } from "./schema/stock-prices"
-import { watchlist } from "./schema/watchlist"
 
 config({ path: ".env.local" })
 
@@ -42,7 +40,6 @@ const dbSchema = {
 
   // Portfolio
   portfolioPositions,
-  portfolioTransactions,
 
   // Fund positions (from Google Sheet)
   fundPositions,
@@ -52,10 +49,7 @@ const dbSchema = {
   alertHistory,
 
   // Audit
-  auditLog,
-
-  // Watchlist
-  watchlist
+  auditLog
 }
 
 function initializeDb(url: string) {

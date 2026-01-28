@@ -5,6 +5,7 @@ import {
   Bell,
   Building2,
   History,
+  Home,
   LayoutDashboard,
   Settings2,
   Star,
@@ -13,12 +14,16 @@ import {
   Wallet
 } from "lucide-react"
 import * as React from "react"
+import Link from "next/link"
 
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
   SidebarRail
 } from "@/components/ui/sidebar"
 import { NavMain } from "../_components/nav-main"
@@ -56,10 +61,6 @@ export function AppSidebar({
           {
             title: "Comps Table",
             url: "/dashboard/comps"
-          },
-          {
-            title: "Watchlist",
-            url: "/dashboard/watchlist"
           }
         ]
       },
@@ -71,10 +72,6 @@ export function AppSidebar({
           {
             title: "Positions",
             url: "/dashboard/portfolio"
-          },
-          {
-            title: "Transactions",
-            url: "/dashboard/portfolio/transactions"
           }
         ]
       },
@@ -140,6 +137,16 @@ export function AppSidebar({
         <TeamSwitcher teams={data.teams} />
       </SidebarHeader>
       <SidebarContent>
+        <SidebarMenu className="px-2 pt-2">
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild tooltip="Home">
+              <Link href="/dashboard">
+                <Home className="h-4 w-4" />
+                <span>Home</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
         <NavMain items={data.navMain} />
       </SidebarContent>
       <SidebarFooter>

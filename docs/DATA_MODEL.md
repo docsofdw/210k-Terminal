@@ -7,7 +7,7 @@ Database uses Supabase (PostgreSQL) with Drizzle ORM.
 ```
 companies (1) ──────┬──── (*) holdings_snapshots
                     ├──── (*) stock_prices
-                    ├──── (*) portfolio_positions ──── (*) portfolio_transactions
+                    ├──── (*) fund_positions (synced from Google Sheets)
                     ├──── (*) alerts ──── (*) alert_history
                     └──── (*) ai_extractions
 
@@ -110,43 +110,27 @@ Foreign exchange rates.
 
 ---
 
-### portfolio_positions
+### fund_positions
 
-210k Capital positions in treasury companies.
-
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| id | uuid | PK | |
-| company_id | uuid | FK companies | |
-| custodian | varchar(100) | NOT NULL | e.g., Canaccord, IBKR |
-| position_type | varchar(50) | NOT NULL | common, warrant, convertible |
-| quantity | decimal(18,4) | NOT NULL | Number of shares/units |
-| cost_basis_local | decimal(18,6) | | Average cost in local currency |
-| delta_pct | decimal(5,4) | | Beta to BTC (e.g., 1.25) |
-| notes | text | | |
-| is_active | boolean | default true | |
-| created_at | timestamp | default now() | |
-| updated_at | timestamp | | |
-
----
-
-### portfolio_transactions
-
-Buy/sell transactions for positions.
+210k Capital fund positions synced from Google Sheets.
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
 | id | uuid | PK | |
-| position_id | uuid | FK portfolio_positions | |
-| transaction_type | varchar(20) | NOT NULL | buy, sell, transfer |
-| transaction_date | date | NOT NULL | |
-| quantity | decimal(18,4) | NOT NULL | Positive for buy, negative for sell |
-| price_local | decimal(18,6) | NOT NULL | |
-| price_usd | decimal(18,6) | | |
-| fx_rate | decimal(18,8) | | |
-| notes | text | | |
-| created_by | uuid | FK users | |
-| created_at | timestamp | default now() | |
+| category | enum | NOT NULL | btc, btc_equities, cash, debt, other |
+| custodian | text | NOT NULL | Exchange or broker name |
+| position_name | text | NOT NULL | Position description |
+| company_id | uuid | FK companies, nullable | Linked company (for equities) |
+| quantity | decimal(20,8) | NOT NULL | Number of shares/units/BTC |
+| price_usd | decimal(20,8) | | Price per unit in USD |
+| value_usd | decimal(20,2) | NOT NULL | Total position value (MTM) |
+| value_btc | decimal(20,8) | | Position value in BTC terms |
+| weight_percent | decimal(10,4) | | Portfolio weight percentage |
+| synced_at | timestamp | NOT NULL | Last sync timestamp |
+
+**Note:** This table is populated exclusively via the `/api/cron/sync-portfolio` endpoint which reads from the "210k Portfolio Stats" Google Sheet. Manual edits are overwritten on each sync.
+
+See [PORTFOLIO_POSITIONS.md](./PORTFOLIO_POSITIONS.md) for detailed sync documentation.
 
 ---
 

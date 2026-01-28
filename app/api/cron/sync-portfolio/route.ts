@@ -26,7 +26,10 @@ const POSITION_TO_TICKER: Record<string, string> = {
   "Smarter Web": "SWC.AQ",
   "Capital B": "ALCPB.PA",
   "Satsuma": "SATS.L",
-  "Bitplanet": "049470.KQ"
+  "Bitplanet": "049470.KQ",
+  "Treasury BV": "TRSR",
+  "DigitalX Limited": "DCC.AX",
+  "That's So Meta": "3350.T"
 }
 
 const CATEGORY_MARKERS: Record<string, string> = {
@@ -73,7 +76,7 @@ export async function GET(request: NextRequest) {
     const sheets = google.sheets({ version: "v4", auth: getGoogleAuth() })
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
-      range: `'${LIVE_PORTFOLIO_SHEET}'!A1:L100`
+      range: `'${LIVE_PORTFOLIO_SHEET}'!A1:M200` // Increased to 200 rows for growth
     })
 
     const rows = response.data.values
@@ -81,10 +84,22 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Insufficient data" }, { status: 500 })
     }
 
-    await db.delete(fundPositions)
+    // Build all positions first, then do atomic delete + insert
+    const positionsToInsert: Array<{
+      category: "btc" | "btc_equities" | "cash" | "debt" | "other"
+      custodian: string
+      positionName: string
+      companyId: string | null
+      quantity: string
+      priceUsd: string | null
+      valueUsd: string
+      valueBtc: string | null
+      weightPercent: string | null
+      syncedAt: Date
+    }> = []
 
     let currentCategory = "other"
-    let inserted = 0
+    let skipped = 0
 
     for (let i = 5; i < rows.length; i++) {
       const row = rows[i]
@@ -94,25 +109,32 @@ export async function GET(request: NextRequest) {
       const col1 = row[1]?.toString().trim() || ""
       const col2 = row[2]?.toString().trim() || ""
 
-      // Category header
+      // Category header detection (check both column A and common patterns)
       if (CATEGORY_MARKERS[col0]) {
         currentCategory = CATEGORY_MARKERS[col0]
         continue
       }
 
-      // Skip non-data rows
-      if (!col0 || col0 === "Portfolio Metrics" || col0 === "Sub-Categories" || (!col1 && !col2)) continue
+      // Skip non-data rows (headers, empty, metrics)
+      if (!col0 || col0.includes("Metrics") || col0.includes("Categories") || col0.includes("Total") || (!col1 && !col2)) continue
 
       const quantity = parseNumber(row[3])
-      const valueUsd = parseNumber(row[6])
-      if (quantity === null || valueUsd === null) continue
+      // Use column H (index 7) for Value (USD MTM) - live mark-to-market value
+      // Column G (index 6) is cost basis, column H (index 7) is MTM
+      const valueUsd = parseNumber(row[7]) ?? parseNumber(row[6])
 
-      // Determine category from column B
+      if (quantity === null || valueUsd === null) {
+        skipped++
+        continue
+      }
+
+      // Determine category from column B (more flexible matching)
       let category = currentCategory
-      if (col1 === "BTC") category = "btc"
-      else if (col1 === "Equities") category = "btc_equities"
-      else if (col1 === "Cash") category = "cash"
-      else if (col1 === "Debt") category = "debt"
+      const col1Lower = col1.toLowerCase()
+      if (col1Lower === "btc" || col1Lower.includes("bitcoin")) category = "btc"
+      else if (col1Lower === "equities" || col1Lower.includes("equity")) category = "btc_equities"
+      else if (col1Lower === "cash" || col1Lower.includes("usd")) category = "cash"
+      else if (col1Lower === "debt" || col1Lower.includes("loan")) category = "debt"
 
       // Find linked company for equities
       let companyId: string | null = null
@@ -121,8 +143,8 @@ export async function GET(request: NextRequest) {
         if (company) companyId = company.id
       }
 
-      await db.insert(fundPositions).values({
-        category: category as "btc" | "btc_equities" | "cash" | "debt" | "other",
+      positionsToInsert.push({
+        category,
         custodian: col0,
         positionName: col2 || col0,
         companyId,
@@ -133,8 +155,20 @@ export async function GET(request: NextRequest) {
         weightPercent: parseNumber(row[9])?.toString() ?? null,
         syncedAt: new Date()
       })
-      inserted++
     }
+
+    // Only delete and insert if we have data (prevents accidental data loss)
+    if (positionsToInsert.length === 0) {
+      return NextResponse.json({ error: "No valid positions found", skipped }, { status: 500 })
+    }
+
+    // Atomic: delete all then insert all
+    await db.delete(fundPositions)
+    for (const position of positionsToInsert) {
+      await db.insert(fundPositions).values(position)
+    }
+
+    const inserted = positionsToInsert.length
 
     return NextResponse.json({ success: true, inserted, timestamp: new Date().toISOString() })
   } catch (error) {

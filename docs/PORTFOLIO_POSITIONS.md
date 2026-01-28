@@ -49,22 +49,25 @@ The sync replaces all existing positions with fresh data from the sheet on each 
 The sync reads from the "Live Portfolio" sheet with this structure:
 
 **Header Row (Row 5):**
-| Column | Field |
-|--------|-------|
-| A | Exchange/Custody |
-| B | Category |
-| C | Position |
-| D | Quantity |
-| E | Price (Local) |
-| F | Price (USD) |
-| G | Value (USD) |
-| H | Value (USD MTM) |
-| I | Value (BTC) |
-| J | % Weight |
+| Column | Index | Field | Used For |
+|--------|-------|-------|----------|
+| A | 0 | Exchange/Custody | `custodian` |
+| B | 1 | Category | Category detection |
+| C | 2 | Position | `positionName` |
+| D | 3 | Quantity | `quantity` |
+| E | 4 | Price (Local) | Not used |
+| F | 5 | Price (USD) | `priceUsd` |
+| G | 6 | Value (USD) | Fallback for valueUsd |
+| H | 7 | Value (USD MTM) | `valueUsd` (preferred - live mark-to-market) |
+| I | 8 | Value (BTC) | `valueBtc` |
+| J | 9 | % Weight | `weightPercent` |
+
+> **Important:** The sync uses **Column H (Value USD MTM)** for the live market value, falling back to Column G (cost basis) if MTM is not available.
 
 **Category Sections:**
 - Rows are grouped by category headers (BTC, BTC Equities, Cash, Debt)
 - The sync detects category headers and assigns positions accordingly
+- Category matching is case-insensitive and supports partial matches
 
 ---
 
@@ -90,7 +93,7 @@ CREATE TABLE fund_positions (
 
 ## Company Linking
 
-Equity positions are automatically linked to companies in the database when the position name matches. The sync uses partial string matching:
+Equity positions are automatically linked to companies in the database when the position name matches. The sync uses partial string matching (case-insensitive):
 
 | Sheet Position Name | Linked Ticker |
 |---------------------|---------------|
@@ -98,8 +101,10 @@ Equity positions are automatically linked to companies in the database when the 
 | Bitcoin Treasury | BTCT.V |
 | Oranje | OBTC3 |
 | DigitalX | DCC.AX |
+| DigitalX Limited | DCC.AX |
 | Aifinyo | EBEN.HM |
 | Metaplanet | 3350.T |
+| That's So Meta | 3350.T |
 | LQWD | LQWD.V |
 | Matador | MATA.V |
 | Moon Inc | 1723.HK |
@@ -108,6 +113,10 @@ Equity positions are automatically linked to companies in the database when the 
 | Capital B | ALCPB.PA |
 | Satsuma | SATS.L |
 | Bitplanet | 049470.KQ |
+| Treasury BV | TRSR |
+
+To add new company mappings, edit `POSITION_TO_TICKER` in:
+`app/api/cron/sync-portfolio/route.ts`
 
 ---
 
@@ -142,6 +151,18 @@ Response:
 
 ---
 
+## Sync Safety Features
+
+The sync includes several safety mechanisms:
+
+1. **No-data protection:** If no valid positions are found in the sheet, the sync aborts without deleting existing data
+2. **Row limit:** Reads up to 200 rows (expandable in code if needed)
+3. **Flexible parsing:** Handles various currency formats ($, €, £, ¥, etc.) and percentage symbols
+4. **Category fallback:** Unknown categories default to "other"
+5. **Value fallback:** Uses MTM value (column H), falls back to cost basis (column G) if unavailable
+
+---
+
 ## UI Features
 
 The portfolio page displays:
@@ -156,6 +177,7 @@ The portfolio page displays:
    - Color-coded badges for each category
    - USD total per category
    - Position count per category
+   - Categories display in order: Equities → BTC → Cash → Debt → Other
 
 3. **Positions Table**
    - Category badge

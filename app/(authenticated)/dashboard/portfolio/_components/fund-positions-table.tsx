@@ -36,31 +36,48 @@ const CATEGORY_COLORS: Record<string, string> = {
   other: "bg-gray-500/20 text-gray-400"
 }
 
+// Define category display order
+const CATEGORY_ORDER = ["btc_equities", "btc", "cash", "debt", "other"]
+
+// Safe number parsing helper
+function safeParseFloat(value: string | null | undefined): number {
+  if (!value) return 0
+  const num = parseFloat(value)
+  return isNaN(num) ? 0 : num
+}
+
 export function FundPositionsTable({
   positions,
   btcPrice = 0
 }: FundPositionsTableProps) {
-  // Calculate totals
+  // Calculate totals with safe parsing
   const totalValueUsd = positions.reduce((sum, { position }) => {
-    return sum + parseFloat(position.valueUsd)
+    return sum + safeParseFloat(position.valueUsd)
   }, 0)
 
-  const totalValueBtc = positions.reduce((sum, { position }) => {
-    return sum + (position.valueBtc ? parseFloat(position.valueBtc) : 0)
-  }, 0)
+  // Calculate BTC value from total USD / BTC price
+  const totalValueBtc = btcPrice > 0 ? totalValueUsd / btcPrice : 0
 
   // Group by category for summary
-  const categoryTotals = positions.reduce(
+  const categoryTotalsMap = positions.reduce(
     (acc, { position }) => {
       const cat = position.category
       if (!acc[cat]) acc[cat] = { usd: 0, btc: 0, count: 0 }
-      acc[cat].usd += parseFloat(position.valueUsd)
-      acc[cat].btc += position.valueBtc ? parseFloat(position.valueBtc) : 0
+      acc[cat].usd += safeParseFloat(position.valueUsd)
+      acc[cat].btc += safeParseFloat(position.valueBtc)
       acc[cat].count++
       return acc
     },
     {} as Record<string, { usd: number; btc: number; count: number }>
   )
+
+  // Sort categories by defined order
+  const categoryTotals = Object.entries(categoryTotalsMap)
+    .sort(([a], [b]) => {
+      const indexA = CATEGORY_ORDER.indexOf(a)
+      const indexB = CATEGORY_ORDER.indexOf(b)
+      return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB)
+    })
 
   if (positions.length === 0) {
     return (
@@ -110,7 +127,7 @@ export function FundPositionsTable({
 
       {/* Category Breakdown */}
       <div className="flex flex-wrap gap-2">
-        {Object.entries(categoryTotals).map(([cat, data]) => (
+        {categoryTotals.map(([cat, data]) => (
           <div
             key={cat}
             className="rounded-sm border border-border/50 bg-card px-3 py-2"
@@ -145,11 +162,11 @@ export function FundPositionsTable({
           </TableHeader>
           <TableBody>
             {positions.map(({ position, company }) => {
-              const quantity = parseFloat(position.quantity)
-              const valueUsd = parseFloat(position.valueUsd)
-              const valueBtc = position.valueBtc ? parseFloat(position.valueBtc) : 0
-              const priceUsd = position.priceUsd ? parseFloat(position.priceUsd) : 0
-              const weight = position.weightPercent ? parseFloat(position.weightPercent) : 0
+              const quantity = safeParseFloat(position.quantity)
+              const valueUsd = safeParseFloat(position.valueUsd)
+              const valueBtc = safeParseFloat(position.valueBtc)
+              const priceUsd = safeParseFloat(position.priceUsd)
+              const weight = safeParseFloat(position.weightPercent)
 
               return (
                 <TableRow key={position.id}>
