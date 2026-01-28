@@ -63,14 +63,14 @@ curl "https://api.telegram.org/bot<BOT_TOKEN>/getWebhookInfo"
 
 ### Required for Production (Vercel)
 ```env
-TELEGRAM_BOT_TOKEN=8408059093:AAHQW7oY9J3FP5E0lKVV8jV8JRC4pDq_fic
-TELEGRAM_CHAT_ID_PRIMARY=1262476386
+TELEGRAM_BOT_TOKEN=your_bot_token_from_botfather
+TELEGRAM_CHAT_ID_PRIMARY=your_chat_id
 ```
 
 ### Required for Local Development (.env.local)
 ```env
-TELEGRAM_BOT_TOKEN=8408059093:AAHQW7oY9J3FP5E0lKVV8jV8JRC4pDq_fic
-TELEGRAM_CHAT_ID_PRIMARY=1262476386
+TELEGRAM_BOT_TOKEN=your_bot_token_from_botfather
+TELEGRAM_CHAT_ID_PRIMARY=your_chat_id
 ```
 
 ### Variable Descriptions
@@ -104,7 +104,7 @@ telegram_connected_at TIMESTAMP  -- When they connected
 ### API Endpoint
 ```
 POST /api/connect-telegram
-Body: { "chatId": "1262476386" }
+Body: { "chatId": "your_chat_id" }
 
 Response (success): { "success": true }
 Response (error): { "error": "Could not send test message" }
