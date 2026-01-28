@@ -27,6 +27,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npx bun db/seed` - Seed database with treasury companies
 - `npx supabase start` - Start local Supabase instance
 
+### Historical Data Backfill
+- `npm run db:backfill` - Run all backfills (FX, BTC, stocks) for 1 year
+- `npm run db:backfill:btc` - Backfill BTC prices from CoinGecko
+- `npm run db:backfill:fx` - Backfill FX rates
+- `npm run db:backfill:stocks` - Backfill stock prices from Yahoo Finance
+
+See [docs/HISTORICAL_DATA.md](./docs/HISTORICAL_DATA.md) for detailed documentation.
+
 ### Testing
 - `npm run test` - Run all tests (unit + e2e)
 - `npm run test:unit` - Run Jest unit tests
@@ -79,8 +87,13 @@ Premium/Discount = (mNAV - 1) * 100%
 1. Authentication state managed by Clerk (`@clerk/nextjs`)
 2. User roles stored in PostgreSQL customers table
 3. Company and market data fetched via server actions
-4. Cron jobs update prices (BTC every 5 min, stocks every 15 min)
+4. Cron jobs update prices:
+   - BTC price: every 1 min (`/api/cron/btc-price`)
+   - Stock prices: every 15 min (`/api/cron/stock-prices`)
+   - Stock prices + snapshots: every 1 hour (`/api/cron/stock-prices-hourly`)
+   - Daily snapshots: midnight UTC (`/api/cron/daily-snapshot`)
 5. Calculations performed in real-time using `/lib/calculations.ts`
+6. Charts read from `daily_snapshots` table with USD toggle support
 
 ### Environment Variables Required
 - `DATABASE_URL` - Supabase pooled connection (port 6543)

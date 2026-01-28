@@ -18,6 +18,10 @@
     "db:migrate": "npx drizzle-kit migrate",
     "db:seed": "npx bun db/seed",
     "db:sync": "npx bun db/seed/sync-from-sheets.ts",
+    "db:backfill": "npx bun db/seed/backfill-all.ts",
+    "db:backfill:btc": "npx bun db/seed/backfill-btc-prices.ts",
+    "db:backfill:fx": "npx bun db/seed/backfill-fx-rates.ts",
+    "db:backfill:stocks": "npx bun db/seed/backfill-stock-prices.ts",
     "test": "npm run test:unit && npm run test:e2e",
     "test:unit": "jest",
     "test:e2e": "playwright test"

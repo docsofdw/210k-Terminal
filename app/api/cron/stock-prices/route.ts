@@ -2,6 +2,7 @@ import { db } from "@/db"
 import { companies } from "@/db/schema/companies"
 import { stockPrices } from "@/db/schema/stock-prices"
 import { getMultipleQuotes } from "@/lib/api/yahoo-finance"
+import { adjustQuoteForPence } from "@/lib/utils/currency"
 import { eq } from "drizzle-orm"
 import { NextRequest, NextResponse } from "next/server"
 
@@ -43,13 +44,16 @@ export async function GET(request: NextRequest) {
         return null
       }
 
+      // Adjust for LSE pence pricing (stocks ending in .L are quoted in pence)
+      const adjustedQuote = adjustQuoteForPence(quote, company.yahooTicker)
+
       return db.insert(stockPrices).values({
         companyId: company.id,
-        price: quote.price.toString(),
-        open: quote.open?.toString() ?? null,
-        high: quote.high?.toString() ?? null,
-        low: quote.low?.toString() ?? null,
-        close: quote.previousClose?.toString() ?? null,
+        price: adjustedQuote.price.toString(),
+        open: adjustedQuote.open?.toString() ?? null,
+        high: adjustedQuote.high?.toString() ?? null,
+        low: adjustedQuote.low?.toString() ?? null,
+        close: adjustedQuote.previousClose?.toString() ?? null,
         volume: quote.volume?.toString() ?? null,
         marketCapUsd: quote.marketCap?.toString() ?? null,
         priceAt: quote.timestamp
