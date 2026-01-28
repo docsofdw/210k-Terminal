@@ -41,7 +41,7 @@ export default async function DashboardPage() {
           <TrendingUp className="h-8 w-8 text-muted-foreground" />
           210k Terminal
         </h1>
-        <p className="text-muted-foreground">Bitcoin treasury analytics</p>
+        <p className="text-muted-foreground">Fund analytics</p>
       </div>
 
       {/* Key Metrics */}
@@ -157,7 +157,7 @@ export default async function DashboardPage() {
                 <div>
                   <p className="font-medium">Portfolio</p>
                   <p className="text-sm text-muted-foreground">
-                    Track your positions
+                    Track the funds' positions
                   </p>
                 </div>
               </div>
@@ -173,7 +173,7 @@ export default async function DashboardPage() {
                 <div>
                   <p className="font-medium">Charts</p>
                   <p className="text-sm text-muted-foreground">
-                    Historical analysis
+                    Funds historical analysis
                   </p>
                 </div>
               </div>

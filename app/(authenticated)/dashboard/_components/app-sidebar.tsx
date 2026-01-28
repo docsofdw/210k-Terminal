@@ -47,8 +47,8 @@ export function AppSidebar({
     teams: [
       {
         name: "210k Terminal",
-        logoUrl: "/logos/utxo-logo-orange.png",
-        plan: "Treasury Analytics"
+        logoUrl: "/logos/utxo-logo-og.png",
+        plan: ""
       }
     ],
     navMain: [
