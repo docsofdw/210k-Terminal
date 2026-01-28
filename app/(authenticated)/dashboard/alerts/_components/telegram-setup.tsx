@@ -21,7 +21,6 @@ export function TelegramSetup({ isConnected, telegramUsername }: TelegramSetupPr
   const router = useRouter()
   const [chatId, setChatId] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const [step, setStep] = useState<1 | 2 | 3>(1)
 
   async function handleConnect() {
     if (!chatId.trim()) {
@@ -82,101 +81,52 @@ export function TelegramSetup({ isConnected, telegramUsername }: TelegramSetupPr
           Connect Telegram
         </CardTitle>
         <CardDescription>
-          Get instant alerts on your phone in 3 easy steps
+          Get instant alerts on your phone
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Step 1 */}
-        <div
-          className={`rounded-lg border p-3 transition-all ${step >= 1 ? 'border-primary/50 bg-primary/5' : 'opacity-50'}`}
-          onClick={() => setStep(1)}
-        >
-          <div className="flex items-start gap-3">
-            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-              1
-            </div>
-            <div className="flex-1">
-              <p className="font-medium">Open the 210k Terminal bot</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Click the button below to open our Telegram bot
-              </p>
-              {step === 1 && (
-                <div className="mt-3 flex gap-2">
-                  <Button size="sm" asChild className="bg-[#0088cc] hover:bg-[#0088cc]/90">
-                    <a href={BOT_URL} target="_blank" rel="noopener noreferrer">
-                      Open Bot
-                      <ExternalLink className="ml-2 h-3 w-3" />
-                    </a>
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={copyBotLink}>
-                    <Copy className="mr-2 h-3 w-3" />
-                    Copy Link
-                  </Button>
-                </div>
-              )}
+        {/* Step 1 - Open Bot */}
+        <div className="flex items-start gap-3">
+          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+            1
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-medium">Open bot & send /start</p>
+            <div className="mt-2 flex gap-2">
+              <Button size="sm" asChild className="bg-[#0088cc] hover:bg-[#0088cc]/90">
+                <a href={BOT_URL} target="_blank" rel="noopener noreferrer">
+                  Open Bot
+                  <ExternalLink className="ml-2 h-3 w-3" />
+                </a>
+              </Button>
+              <Button size="sm" variant="outline" onClick={copyBotLink}>
+                <Copy className="h-3 w-3" />
+              </Button>
             </div>
           </div>
         </div>
 
-        {/* Step 2 */}
-        <div
-          className={`rounded-lg border p-3 transition-all ${step >= 2 ? 'border-primary/50 bg-primary/5' : 'opacity-50'}`}
-          onClick={() => step >= 1 && setStep(2)}
-        >
-          <div className="flex items-start gap-3">
-            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-              2
-            </div>
-            <div className="flex-1">
-              <p className="font-medium">Send /start to the bot</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                The bot will reply with your unique Chat ID number
-              </p>
-              {step === 2 && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="mt-3"
-                  onClick={() => setStep(3)}
-                >
-                  I have my Chat ID
-                </Button>
-              )}
-            </div>
+        {/* Step 2 - Paste Chat ID */}
+        <div className="flex items-start gap-3">
+          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+            2
           </div>
-        </div>
-
-        {/* Step 3 */}
-        <div
-          className={`rounded-lg border p-3 transition-all ${step >= 3 ? 'border-primary/50 bg-primary/5' : 'opacity-50'}`}
-          onClick={() => step >= 2 && setStep(3)}
-        >
-          <div className="flex items-start gap-3">
-            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-              3
-            </div>
-            <div className="flex-1">
-              <p className="font-medium">Paste your Chat ID below</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Enter the number the bot sent you
-              </p>
-              {step === 3 && (
-                <div className="mt-3 flex gap-2">
-                  <Input
-                    placeholder="e.g., 1262476386"
-                    value={chatId}
-                    onChange={(e) => setChatId(e.target.value)}
-                    className="font-mono"
-                  />
-                  <Button onClick={handleConnect} disabled={isLoading}>
-                    {isLoading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      "Connect"
-                    )}
-                  </Button>
-                </div>
-              )}
+          <div className="flex-1">
+            <p className="text-sm font-medium">Paste your Chat ID</p>
+            <div className="mt-2 flex gap-2">
+              <Input
+                placeholder="e.g., 1262476386"
+                value={chatId}
+                onChange={(e) => setChatId(e.target.value)}
+                className="font-mono h-9"
+              />
+              <Button onClick={handleConnect} disabled={isLoading || !chatId.trim()} size="sm">
+                {isLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  "Connect"
+                )}
+              </Button>
             </div>
           </div>
         </div>
