@@ -9,7 +9,6 @@ import {
   LayoutDashboard,
   Settings2,
   Star,
-  TrendingUp,
   Users,
   Wallet
 } from "lucide-react"
@@ -48,7 +47,7 @@ export function AppSidebar({
     teams: [
       {
         name: "210k Terminal",
-        logo: TrendingUp,
+        logoUrl: "/logos/utxo-logo-icon.png",
         plan: "Treasury Analytics"
       }
     ],
