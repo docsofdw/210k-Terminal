@@ -8,6 +8,9 @@ export const customers = pgTable("customers", {
   name: text("name"),
   email: text("email"),
   role: userRole("role").default("viewer").notNull(),
+  telegramChatId: text("telegram_chat_id"),
+  telegramUsername: text("telegram_username"),
+  telegramConnectedAt: timestamp("telegram_connected_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
 })

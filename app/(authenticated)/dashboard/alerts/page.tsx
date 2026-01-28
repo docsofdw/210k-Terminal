@@ -1,18 +1,24 @@
 import { getAllCompanies } from "@/actions/companies"
 import { getAlertsWithCompanies } from "@/actions/alerts"
+import { getCurrentUser } from "@/actions/user"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { requireAuth } from "@/lib/auth/permissions"
 import { Bell } from "lucide-react"
 import { AddAlertDialog } from "./_components/add-alert-dialog"
 import { AlertsTable } from "./_components/alerts-table"
+import { TelegramSetup } from "./_components/telegram-setup"
+import { AlertTemplates } from "./_components/alert-templates"
 
 export default async function AlertsPage() {
   await requireAuth()
 
-  const [alerts, companies] = await Promise.all([
+  const [alerts, companies, currentUser] = await Promise.all([
     getAlertsWithCompanies(),
-    getAllCompanies()
+    getAllCompanies(),
+    getCurrentUser()
   ])
+
+  const telegramConnected = !!currentUser?.telegramChatId
 
   const activeCount = alerts.filter(a => a.alert.status === "active").length
   const pausedCount = alerts.filter(a => a.alert.status === "paused").length
@@ -67,6 +73,20 @@ export default async function AlertsPage() {
           <div className="text-xl font-bold">{totalTriggers}</div>
         </div>
       </div>
+
+      {/* Quick Setup Section - Show prominently if Telegram not connected or no alerts */}
+      {(!telegramConnected || alerts.length === 0) && (
+        <div className="grid gap-4 md:grid-cols-2">
+          <TelegramSetup
+            isConnected={telegramConnected}
+            telegramUsername={currentUser?.telegramUsername}
+          />
+          <AlertTemplates
+            companies={companies}
+            userTelegramConnected={telegramConnected}
+          />
+        </div>
+      )}
 
       <Card>
         <CardHeader className="pb-3">
