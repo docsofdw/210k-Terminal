@@ -109,6 +109,9 @@ export function AddAlertDialog({ companies }: AddAlertDialogProps) {
   }
 
   const isPercentAlert = formData.type.includes("pct_change")
+  const isPriceAlert = formData.type.includes("price")
+  const selectedCompany = companies.find(c => c.id === formData.companyId)
+  const currency = selectedCompany?.tradingCurrency || "USD"
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -169,7 +172,7 @@ export function AddAlertDialog({ companies }: AddAlertDialogProps) {
                 <SelectContent>
                   {companies.map(company => (
                     <SelectItem key={company.id} value={company.id}>
-                      {company.ticker}
+                      {company.name} ({company.ticker})
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -196,8 +199,8 @@ export function AddAlertDialog({ companies }: AddAlertDialogProps) {
               required
             />
             <p className="text-[10px] text-muted-foreground">
-              {formData.type.includes("price")
-                ? "Enter the price in USD"
+              {isPriceAlert
+                ? `Enter the price in ${currency}`
                 : formData.type.includes("mnav")
                   ? "Enter the mNAV multiple (e.g., 1.5 for 1.5x)"
                   : isPercentAlert
