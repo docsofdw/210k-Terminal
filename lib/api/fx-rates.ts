@@ -7,7 +7,10 @@ export interface FxRates {
 }
 
 // Supported currencies for treasury companies
-export const SUPPORTED_CURRENCIES = ["USD", "CAD", "EUR", "GBP", "JPY", "HKD", "AUD"] as const
+export const SUPPORTED_CURRENCIES = [
+  "USD", "CAD", "EUR", "GBP", "JPY", "HKD", "AUD",
+  "BRL", "THB", "KRW"  // Brazil, Thailand, South Korea
+] as const
 export type SupportedCurrency = (typeof SUPPORTED_CURRENCIES)[number]
 
 export async function getFxRates(base: string = "USD"): Promise<FxRates | null> {

@@ -1,15 +1,16 @@
 import { getAllCompanies } from "@/actions/companies"
-import { getLatestBtcPrice, getLatestStockPrices } from "@/actions/market-data"
+import { getLatestBtcPrice, getLatestStockPrices, getLatestFxRates } from "@/actions/market-data"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Bitcoin, Building2, TrendingUp } from "lucide-react"
 import { BtcPriceHeader } from "./_components/btc-price-header"
 import { CompsTable } from "./_components/comps-table"
 
 export default async function CompsPage() {
-  const [companies, btcPriceData, stockPricesMap] = await Promise.all([
+  const [companies, btcPriceData, stockPricesMap, fxRatesMap] = await Promise.all([
     getAllCompanies(),
     getLatestBtcPrice(),
-    getLatestStockPrices()
+    getLatestStockPrices(),
+    getLatestFxRates()
   ])
 
   // Default BTC price if no data in DB yet
@@ -24,15 +25,16 @@ export default async function CompsPage() {
     stockPrices.set(companyId, Number(price.price))
   })
 
-  // Placeholder FX rates (will be fetched from DB in production)
-  const fxRates = new Map<string, number>([
-    ["CAD", 1.35],
-    ["JPY", 150],
-    ["EUR", 0.92],
-    ["GBP", 0.79],
-    ["HKD", 7.8],
-    ["AUD", 1.55]
-  ])
+  // Convert FX rates map (use DB values with fallbacks for missing currencies)
+  const defaultRates: Record<string, number> = {
+    CAD: 1.35, JPY: 150, EUR: 0.92, GBP: 0.79,
+    HKD: 7.8, AUD: 1.55, BRL: 6.0, THB: 35, KRW: 1350
+  }
+  const fxRates = new Map<string, number>()
+  for (const [currency, fallback] of Object.entries(defaultRates)) {
+    const dbRate = fxRatesMap.get(currency)
+    fxRates.set(currency, dbRate ? Number(dbRate.rateToUsd) : fallback)
+  }
 
   // Calculate summary stats
   const totalBtcHoldings = companies.reduce(

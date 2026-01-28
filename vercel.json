@@ -6,11 +6,11 @@
     },
     {
       "path": "/api/cron/stock-prices",
-      "schedule": "*/15 9-16 * * 1-5"
+      "schedule": "*/15 * * * 1-5"
     },
     {
       "path": "/api/cron/fx-rates",
-      "schedule": "0 6 * * *"
+      "schedule": "0 */4 * * *"
     },
     {
       "path": "/api/cron/daily-snapshot",
