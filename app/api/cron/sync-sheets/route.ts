@@ -1,6 +1,5 @@
 import { db } from "@/db"
 import { companies } from "@/db/schema/companies"
-import { btcPrices } from "@/db/schema/btc-prices"
 import { eq } from "drizzle-orm"
 import { google } from "googleapis"
 import { NextRequest, NextResponse } from "next/server"
@@ -8,38 +7,9 @@ import { NextRequest, NextResponse } from "next/server"
 export const dynamic = "force-dynamic"
 export const maxDuration = 60
 
-const SPREADSHEET_ID = "1fNQGJIaDT3czM7Bqd9dZ6WTJYk-54niL9F3Pe9zYgpQ"
-const COMPS_TABLE_SHEET = "Comps Table"
-
-// Map sheet company names to database tickers
-const COMPANY_NAME_TO_TICKER: Record<string, string> = {
-  Strategy: "MSTR",
-  Metaplanet: "3350.T",
-  LQWD: "LQWD.V",
-  Matador: "MATA.V",
-  "Moon Inc": "1723.HK",
-  "Smarter Web Company": "SWC.AQ",
-  "Capital B": "ALCPB.PA",
-  H100: "H100",
-  DV8: "DV8.BK",
-  BTCT: "BTCT.V",
-  satsuma: "SATS.L",
-  DigitalX: "DCC.AX",
-  aifinyo: "EBEN.HM",
-  bitplanet: "049470.KQ",
-  oranje: "OBTC3",
-  ABTC: "ABTC"
-}
-
-// Row indices in the sheet (0-indexed from A1)
-const ROW_INDICES = {
-  COMPANY_NAMES: 2, // Row 3 - company names
-  BTC_HOLDINGS: 3, // Row 4 - BTC in treasury
-  SHARE_COUNT: 5, // Row 6 - Share count
-  DEBT_USD: 9, // Row 10 - Debt (USD)
-  PREFERREDS: 10, // Row 11 - Preferreds
-  CASH_USD: 11 // Row 12 - Cash (USD)
-}
+// BTCTCs Master Sheet configuration
+const SPREADSHEET_ID = "1_whntepzncCFsn-K1oyL5Epqh5D6mauAOnb_Zs7svkk"
+const DASHBOARD_SHEET = "Dashboard"
 
 function getGoogleAuth() {
   const credentials = process.env.GOOGLE_SERVICE_ACCOUNT_KEY
@@ -54,35 +24,24 @@ function getGoogleAuth() {
   })
 }
 
-function parseNumber(val: string | undefined | null): number | null {
-  if (!val) return null
+function parseNumber(val: string | undefined | null): string | null {
+  if (val === undefined || val === null || val === "") return null
   const cleaned = val
     .toString()
     .replace(/[$€£¥₩฿,\s%]/g, "")
     .replace(/[()]/g, "-")
     .trim()
 
-  if (cleaned === "" || cleaned === "-") return null
+  if (cleaned === "" || cleaned === "-" || cleaned === "N/A") return null
 
   const num = parseFloat(cleaned)
-  return isNaN(num) ? null : num
+  return isNaN(num) ? null : num.toString()
 }
 
-function findTicker(companyName: string): string | null {
-  // Direct match
-  if (COMPANY_NAME_TO_TICKER[companyName]) {
-    return COMPANY_NAME_TO_TICKER[companyName]
-  }
-
-  // Case-insensitive match
-  const lowerName = companyName.toLowerCase().trim()
-  for (const [name, ticker] of Object.entries(COMPANY_NAME_TO_TICKER)) {
-    if (name.toLowerCase() === lowerName) {
-      return ticker
-    }
-  }
-
-  return null
+function parseString(val: string | undefined | null): string | null {
+  if (val === undefined || val === null) return null
+  const str = val.toString().trim()
+  return str === "" || str === "N/A" ? null : str
 }
 
 export async function GET(request: NextRequest) {
@@ -96,92 +55,168 @@ export async function GET(request: NextRequest) {
     const auth = getGoogleAuth()
     const sheets = google.sheets({ version: "v4", auth })
 
-    // Fetch sheet data
+    // Fetch Dashboard sheet data
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
-      range: `'${COMPS_TABLE_SHEET}'!A1:AZ20`
+      range: `'${DASHBOARD_SHEET}'!A:AJ`
     })
 
     const rows = response.data.values
-    if (!rows || rows.length < 15) {
+    if (!rows || rows.length < 2) {
       return NextResponse.json(
-        { error: "Insufficient data in sheet" },
+        { error: "No data found in Dashboard sheet" },
         { status: 500 }
       )
     }
 
-    // Extract BTC price from B3 cell
-    const btcPriceCell = rows[2]?.[1]
-    const btcPrice = parseNumber(btcPriceCell)
+    // First row is headers
+    const headers = rows[0].map((h: string) => h?.toString().toLowerCase().trim() || "")
 
-    // Get company data rows
-    const companyRow = rows[ROW_INDICES.COMPANY_NAMES]
-    const btcRow = rows[ROW_INDICES.BTC_HOLDINGS]
-    const shareRow = rows[ROW_INDICES.SHARE_COUNT]
-    const debtRow = rows[ROW_INDICES.DEBT_USD]
-    const preferredsRow = rows[ROW_INDICES.PREFERREDS]
-    const cashRow = rows[ROW_INDICES.CASH_USD]
+    // Build column index map
+    const colIndex = (searchTerms: string[]): number => {
+      for (const term of searchTerms) {
+        const idx = headers.findIndex((h: string) =>
+          h === term.toLowerCase() || h.includes(term.toLowerCase())
+        )
+        if (idx !== -1) return idx
+      }
+      return -1
+    }
+
+    // Map columns
+    const cols = {
+      rank: colIndex(["rank"]),
+      name: colIndex(["company name", "name"]),
+      ticker: colIndex(["ticker"]),
+      btcHoldings: colIndex(["btc holdings", "btc"]),
+      basicMNav: colIndex(["basic mnav"]),
+      dilutedMNav: colIndex(["diluted mnav"]),
+      price: colIndex(["price"]),
+      priceChange1d: colIndex(["1d change", "1d"]),
+      priceAt1xDilutedMNav: colIndex(["1x d. mnav price", "1x diluted mnav", "1x d."]),
+      enterpriseValueUsd: colIndex(["enterprise value (usd)", "enterprise value", "ev"]),
+      avgVolumeUsd: colIndex(["avg volume (usd)", "avg volume usd"]),
+      btcNavUsd: colIndex(["btc nav (usd)", "btc nav"]),
+      debtUsd: colIndex(["total debt", "debt"]),
+      high1y: colIndex(["1y high"]),
+      high1yDelta: colIndex(["1y high delta"]),
+      avg200d: colIndex(["200d avg"]),
+      avg200dDelta: colIndex(["200d avg delta"]),
+      insiderBuySellRatio: colIndex(["insider buy/sell ratio", "insider"]),
+      cashUsd: colIndex(["cash and equiv", "cash"]),
+      marketCapUsd: colIndex(["market cap"]),
+      sharesOutstanding: colIndex(["shares outstanding"]),
+      dilutedShares: colIndex(["diluted shares"]),
+      dilutedMarketCapUsd: colIndex(["diluted market cap"]),
+      dilutedEvUsd: colIndex(["diluted ev (usd)", "diluted ev"]),
+      exchange: colIndex(["exchange"]),
+      avgVolumeShares: colIndex(["avg volume (shares)"]),
+      priceChange5d: colIndex(["5d"]),
+      priceChange1m: colIndex(["1m"]),
+      priceChangeYtd: colIndex(["ytd"]),
+      priceChange1y: colIndex(["1y"]),
+      currencyCode: colIndex(["currency code", "currency"]),
+      conversionRate: colIndex(["conversion rate"]),
+      region: colIndex(["region"]),
+      subRegion: colIndex(["sub-region", "subregion"]),
+      category: colIndex(["category"])
+    }
 
     let updated = 0
+    let inserted = 0
     let skipped = 0
 
-    // Process each company column (starting from column C, index 2)
-    for (let col = 2; col < companyRow.length; col++) {
-      const name = companyRow[col]?.toString().trim()
-      if (!name) continue
+    // Process each data row (skip header)
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i]
+      if (!row) continue
 
-      const ticker = findTicker(name)
-      if (!ticker) continue
+      const ticker = parseString(row[cols.ticker])
+      const name = parseString(row[cols.name])
 
-      // Find company in database
+      if (!ticker || !name) {
+        skipped++
+        continue
+      }
+
+      // Prepare update data
+      const updateData = {
+        rank: parseNumber(row[cols.rank]),
+        name,
+        yahooTicker: ticker,
+        exchange: parseString(row[cols.exchange]),
+        currencyCode: parseString(row[cols.currencyCode]) || "USD",
+        conversionRate: parseNumber(row[cols.conversionRate]),
+        region: parseString(row[cols.region]),
+        subRegion: parseString(row[cols.subRegion]),
+        category: parseString(row[cols.category]),
+        btcHoldings: parseNumber(row[cols.btcHoldings]),
+        price: parseNumber(row[cols.price]),
+        priceChange1d: parseNumber(row[cols.priceChange1d]),
+        marketCapUsd: parseNumber(row[cols.marketCapUsd]),
+        sharesOutstanding: parseNumber(row[cols.sharesOutstanding]),
+        dilutedShares: parseNumber(row[cols.dilutedShares]),
+        dilutedMarketCapUsd: parseNumber(row[cols.dilutedMarketCapUsd]),
+        basicMNav: parseNumber(row[cols.basicMNav]),
+        dilutedMNav: parseNumber(row[cols.dilutedMNav]),
+        priceAt1xDilutedMNav: parseNumber(row[cols.priceAt1xDilutedMNav]),
+        enterpriseValueUsd: parseNumber(row[cols.enterpriseValueUsd]),
+        dilutedEvUsd: parseNumber(row[cols.dilutedEvUsd]),
+        btcNavUsd: parseNumber(row[cols.btcNavUsd]),
+        debtUsd: parseNumber(row[cols.debtUsd]),
+        cashUsd: parseNumber(row[cols.cashUsd]),
+        avgVolumeUsd: parseNumber(row[cols.avgVolumeUsd]),
+        avgVolumeShares: parseNumber(row[cols.avgVolumeShares]),
+        high1y: parseNumber(row[cols.high1y]),
+        high1yDelta: parseNumber(row[cols.high1yDelta]),
+        avg200d: parseNumber(row[cols.avg200d]),
+        avg200dDelta: parseNumber(row[cols.avg200dDelta]),
+        priceChange5d: parseNumber(row[cols.priceChange5d]),
+        priceChange1m: parseNumber(row[cols.priceChange1m]),
+        priceChangeYtd: parseNumber(row[cols.priceChangeYtd]),
+        priceChange1y: parseNumber(row[cols.priceChange1y]),
+        insiderBuySellRatio: parseNumber(row[cols.insiderBuySellRatio]),
+        lastSyncedAt: new Date(),
+        syncSource: "Google Sheets cron sync",
+        updatedAt: new Date()
+      }
+
+      // Try to update existing company by ticker
       const [existing] = await db
         .select()
         .from(companies)
         .where(eq(companies.ticker, ticker))
         .limit(1)
 
-      if (!existing) {
-        skipped++
-        continue
-      }
-
-      // Update company with financial data
-      await db
-        .update(companies)
-        .set({
-          btcHoldings: parseNumber(btcRow?.[col])?.toString() ?? existing.btcHoldings,
-          sharesOutstanding: parseNumber(shareRow?.[col])?.toString() ?? existing.sharesOutstanding,
-          debtUsd: parseNumber(debtRow?.[col])?.toString() ?? existing.debtUsd,
-          preferredsUsd: parseNumber(preferredsRow?.[col])?.toString() ?? existing.preferredsUsd,
-          cashUsd: parseNumber(cashRow?.[col])?.toString() ?? existing.cashUsd,
-          btcHoldingsDate: new Date(),
-          btcHoldingsSource: "Google Sheets cron sync",
-          updatedAt: new Date()
+      if (existing) {
+        await db
+          .update(companies)
+          .set(updateData)
+          .where(eq(companies.id, existing.id))
+        updated++
+      } else {
+        // Insert new company
+        await db.insert(companies).values({
+          ...updateData,
+          ticker,
+          name
         })
-        .where(eq(companies.id, existing.id))
-
-      updated++
-    }
-
-    // Insert BTC price if available
-    if (btcPrice) {
-      await db.insert(btcPrices).values({
-        priceUsd: btcPrice.toString(),
-        priceAt: new Date()
-      })
+        inserted++
+      }
     }
 
     return NextResponse.json({
       success: true,
       updated,
+      inserted,
       skipped,
-      btcPrice,
+      total: rows.length - 1,
       timestamp: new Date().toISOString()
     })
   } catch (error) {
     console.error("Google Sheets sync cron error:", error)
     return NextResponse.json(
-      { error: "Failed to sync from Google Sheets" },
+      { error: "Failed to sync from Google Sheets", details: error instanceof Error ? error.message : "Unknown error" },
       { status: 500 }
     )
   }

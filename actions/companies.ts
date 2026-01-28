@@ -6,7 +6,7 @@ import {
   type InsertCompany,
   type SelectCompany
 } from "@/db/schema/companies"
-import { eq, desc } from "drizzle-orm"
+import { eq, desc, and, isNotNull } from "drizzle-orm"
 import { logAudit } from "./audit"
 
 export async function getAllCompanies(): Promise<SelectCompany[]> {
@@ -15,7 +15,12 @@ export async function getAllCompanies(): Promise<SelectCompany[]> {
     orderBy: [desc(companies.btcHoldings)]
   })
 
-  return allCompanies
+  // Sort by rank if available, otherwise by BTC holdings
+  return allCompanies.sort((a, b) => {
+    const rankA = a.rank ? Number(a.rank) : 9999
+    const rankB = b.rank ? Number(b.rank) : 9999
+    return rankA - rankB
+  })
 }
 
 export async function getAllCompaniesAdmin(): Promise<SelectCompany[]> {
@@ -184,4 +189,18 @@ export async function toggleCompanyTracking(
   isTracked: boolean
 ): Promise<{ isSuccess: boolean; data?: SelectCompany; error?: string }> {
   return updateCompany(id, { isTracked })
+}
+
+export async function getLastSyncTimestamp(): Promise<Date | null> {
+  const [result] = await db
+    .select({ lastSyncedAt: companies.lastSyncedAt })
+    .from(companies)
+    .where(and(
+      eq(companies.isTracked, true),
+      isNotNull(companies.lastSyncedAt)
+    ))
+    .orderBy(desc(companies.lastSyncedAt))
+    .limit(1)
+
+  return result?.lastSyncedAt || null
 }

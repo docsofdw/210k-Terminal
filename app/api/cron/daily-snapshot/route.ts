@@ -99,7 +99,8 @@ export async function GET(request: NextRequest) {
 
     for (const company of allCompanies) {
       const stockPrice = stockPriceMap.get(company.id)
-      const fxRate = fxRateMap.get(company.tradingCurrency) || 1
+      const currencyCode = company.tradingCurrency || company.currencyCode || "USD"
+      const fxRate = fxRateMap.get(currencyCode) || 1
       const sheetCompany = sheetData?.get(company.ticker.toUpperCase())
 
       // Calculate values
@@ -177,7 +178,7 @@ export async function GET(request: NextRequest) {
         debtUsd: debtUsd.toString(),
         preferredsUsd: preferredsUsd.toString(),
         fxRate: fxRate.toString(),
-        tradingCurrency: company.tradingCurrency,
+        tradingCurrency: currencyCode,
         dataSource: sheetData ? "google_sheets" : "database",
         rawData: { company, stockPrice, fxRate }
       })

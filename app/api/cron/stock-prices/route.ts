@@ -32,20 +32,22 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ message: "No companies to update" })
     }
 
-    // Get quotes from Yahoo Finance
-    const symbols = activeCompanies.map(c => c.yahooTicker)
+    // Get quotes from Yahoo Finance (filter out companies without yahoo tickers)
+    const companiesWithTickers = activeCompanies.filter(c => c.yahooTicker)
+    const symbols = companiesWithTickers.map(c => c.yahooTicker as string)
     const quotes = await getMultipleQuotes(symbols)
 
     // Insert price records
-    const insertPromises = activeCompanies.map(async company => {
-      const quote = quotes.get(company.yahooTicker)
+    const insertPromises = companiesWithTickers.map(async company => {
+      const yahooTicker = company.yahooTicker as string
+      const quote = quotes.get(yahooTicker)
       if (!quote) {
-        console.log(`No quote for ${company.yahooTicker}`)
+        console.log(`No quote for ${yahooTicker}`)
         return null
       }
 
       // Adjust for LSE pence pricing (stocks ending in .L are quoted in pence)
-      const adjustedQuote = adjustQuoteForPence(quote, company.yahooTicker)
+      const adjustedQuote = adjustQuoteForPence(quote, yahooTicker)
 
       return db.insert(stockPrices).values({
         companyId: company.id,

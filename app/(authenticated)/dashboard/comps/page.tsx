@@ -1,16 +1,15 @@
-import { getAllCompanies } from "@/actions/companies"
-import { getLatestBtcPrice, getLatestStockPrices, getLatestFxRates } from "@/actions/market-data"
+import { getAllCompanies, getLastSyncTimestamp } from "@/actions/companies"
+import { getLatestBtcPrice } from "@/actions/market-data"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Bitcoin, Building2, TrendingUp } from "lucide-react"
 import { BtcPriceHeader } from "./_components/btc-price-header"
 import { CompsTable } from "./_components/comps-table"
 
 export default async function CompsPage() {
-  const [companies, btcPriceData, stockPricesMap, fxRatesMap] = await Promise.all([
+  const [companies, btcPriceData, lastSynced] = await Promise.all([
     getAllCompanies(),
     getLatestBtcPrice(),
-    getLatestStockPrices(),
-    getLatestFxRates()
+    getLastSyncTimestamp()
   ])
 
   // Default BTC price if no data in DB yet
@@ -18,23 +17,6 @@ export default async function CompsPage() {
   const change24h = btcPriceData ? Number(btcPriceData.change24h) : 0
   const high24h = btcPriceData ? Number(btcPriceData.high24h) : undefined
   const low24h = btcPriceData ? Number(btcPriceData.low24h) : undefined
-
-  // Convert stock prices map
-  const stockPrices = new Map<string, number>()
-  stockPricesMap.forEach((price, companyId) => {
-    stockPrices.set(companyId, Number(price.price))
-  })
-
-  // Convert FX rates map (use DB values with fallbacks for missing currencies)
-  const defaultRates: Record<string, number> = {
-    CAD: 1.35, JPY: 150, EUR: 0.92, GBP: 0.79,
-    HKD: 7.8, AUD: 1.55, BRL: 6.0, THB: 35, KRW: 1350
-  }
-  const fxRates = new Map<string, number>()
-  for (const [currency, fallback] of Object.entries(defaultRates)) {
-    const dbRate = fxRatesMap.get(currency)
-    fxRates.set(currency, dbRate ? Number(dbRate.rateToUsd) : fallback)
-  }
 
   // Calculate summary stats
   const totalBtcHoldings = companies.reduce(
@@ -47,12 +29,17 @@ export default async function CompsPage() {
     <div className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="flex items-center gap-2 text-3xl font-bold tracking-tight">
-          <TrendingUp className="h-8 w-8 text-muted-foreground" />
+        <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
+          <TrendingUp className="h-6 w-6 text-muted-foreground" />
           Treasury Comps
         </h1>
-        <p className="text-muted-foreground">
+        <p className="text-xs text-muted-foreground">
           Comparative analysis of Bitcoin treasury companies
+          {lastSynced && (
+            <span className="ml-2 text-muted-foreground/60">
+              · Last sync: {new Date(lastSynced).toLocaleString()}
+            </span>
+          )}
         </p>
       </div>
 
@@ -124,22 +111,17 @@ export default async function CompsPage() {
 
       {/* Main Comps Table */}
       {companies.length > 0 ? (
-        <CompsTable
-          companies={companies}
-          btcPrice={btcPrice}
-          stockPrices={stockPrices}
-          fxRates={fxRates}
-        />
+        <CompsTable companies={companies} />
       ) : (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Building2 className="h-12 w-12 text-muted-foreground" />
             <h3 className="mt-4 text-lg font-semibold">No companies yet</h3>
             <p className="text-muted-foreground">
-              Run the seed script to add treasury companies.
+              Run the sync script to add treasury companies from Google Sheets.
             </p>
             <code className="mt-2 rounded bg-muted px-2 py-1 text-sm">
-              npx bun db/seed/companies.ts
+              npx bun db/seed/sync-from-sheets.ts
             </code>
           </CardContent>
         </Card>

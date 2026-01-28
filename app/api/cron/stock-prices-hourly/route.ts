@@ -40,8 +40,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ message: "No companies to update" })
     }
 
-    // Get quotes from Yahoo Finance
-    const symbols = activeCompanies.map(c => c.yahooTicker)
+    // Get quotes from Yahoo Finance (filter out companies without yahoo tickers)
+    const companiesWithTickers = activeCompanies.filter(c => c.yahooTicker)
+    const symbols = companiesWithTickers.map(c => c.yahooTicker as string)
     const quotes = await getMultipleQuotes(symbols)
 
     // Get latest BTC price
@@ -64,15 +65,16 @@ export async function GET(request: NextRequest) {
     let stockPricesUpdated = 0
     let snapshotsUpdated = 0
 
-    for (const company of activeCompanies) {
-      const quote = quotes.get(company.yahooTicker)
+    for (const company of companiesWithTickers) {
+      const yahooTicker = company.yahooTicker as string
+      const quote = quotes.get(yahooTicker)
       if (!quote) {
-        console.log(`No quote for ${company.yahooTicker}`)
+        console.log(`No quote for ${yahooTicker}`)
         continue
       }
 
       // Adjust for LSE pence pricing (stocks ending in .L are quoted in pence)
-      const adjustedQuote = adjustQuoteForPence(quote, company.yahooTicker)
+      const adjustedQuote = adjustQuoteForPence(quote, yahooTicker)
 
       // Insert into stock_prices table (in local currency)
       await db.insert(stockPrices).values({
@@ -90,7 +92,8 @@ export async function GET(request: NextRequest) {
 
       // Also update/upsert today's daily snapshot for real-time chart updates
       if (btcPrice) {
-        const fxRate = fxRateMap.get(company.tradingCurrency) || 1
+        const currencyCode = company.tradingCurrency || company.currencyCode || "USD"
+        const fxRate = fxRateMap.get(currencyCode) || 1
         const stockPriceUsd = adjustedQuote.price / fxRate
 
         // Parse company financial data
@@ -180,7 +183,7 @@ export async function GET(request: NextRequest) {
             debtUsd: debtUsd.toString(),
             preferredsUsd: preferredsUsd.toString(),
             fxRate: fxRate.toString(),
-            tradingCurrency: company.tradingCurrency,
+            tradingCurrency: currencyCode,
             dataSource: "hourly_update"
           })
           snapshotsUpdated++
@@ -192,7 +195,7 @@ export async function GET(request: NextRequest) {
       success: true,
       stockPricesUpdated,
       snapshotsUpdated,
-      companiesTotal: activeCompanies.length,
+      companiesTotal: companiesWithTickers.length,
       btcPrice,
       timestamp: new Date().toISOString()
     })

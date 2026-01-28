@@ -2,31 +2,65 @@
 
 import { google } from "googleapis"
 
-// Sheet configuration
-const SPREADSHEET_ID = "1fNQGJIaDT3czM7Bqd9dZ6WTJYk-54niL9F3Pe9zYgpQ"
-const COMPS_TABLE_SHEET = "Comps Table"
+// New BTCTCs Master Sheet configuration
+const SPREADSHEET_ID = "1_whntepzncCFsn-K1oyL5Epqh5D6mauAOnb_Zs7svkk"
+const DASHBOARD_SHEET = "Dashboard"
 
 export interface SheetCompanyData {
-  ticker: string
+  // Basic Info
+  rank: number | null
   name: string
-  price: number | null
+  ticker: string
+
+  // Core Metrics
   btcHoldings: number | null
-  sharesOutstanding: number | null
-  marketCapUsd: number | null
-  evUsd: number | null
-  btcNav: number | null
-  mNav: number | null
+  basicMNav: number | null
+  dilutedMNav: number | null
+  mNav: number | null  // Legacy alias for dilutedMNav
+  price: number | null
+  priceChange1d: number | null
+  priceAt1xDilutedMNav: number | null
+
+  // Valuation
+  enterpriseValueUsd: number | null
+  avgVolumeUsd: number | null
+  btcNavUsd: number | null
   debtUsd: number | null
+
+  // Price History
+  high1y: number | null
+  high1yDelta: number | null
+  avg200d: number | null
+  avg200dDelta: number | null
+
+  // Other
+  insiderBuySellRatio: number | null
   cashUsd: number | null
-  preferredsUsd: number | null
-  satsPerShare: number | null
-  btcPerShare: number | null
-  change24h: number | null
+  marketCapUsd: number | null
+  sharesOutstanding: number | null
+  dilutedShares: number | null
+  dilutedMarketCapUsd: number | null
+  dilutedEvUsd: number | null
+  exchange: string | null
+  avgVolumeShares: number | null
+
+  // Performance
+  priceChange5d: number | null
+  priceChange1m: number | null
+  priceChangeYtd: number | null
+  priceChange1y: number | null
+
+  // Classification
+  currencyCode: string | null
+  conversionRate: number | null
+  region: string | null
+  subRegion: string | null
+  category: string | null
 }
 
 export interface SheetDataResult {
   companies: SheetCompanyData[]
-  btcPrice: number | null
+  btcPrice: number | null  // Legacy field for backward compatibility
   lastUpdated: Date
   source: "google_sheets"
 }
@@ -51,7 +85,27 @@ function getGoogleAuth() {
   }
 }
 
-export async function getCompsTableData(): Promise<SheetDataResult | null> {
+function parseNumber(val: string | undefined | null): number | null {
+  if (val === undefined || val === null || val === "") return null
+  const cleaned = val
+    .toString()
+    .replace(/[$€£¥₩฿,\s%]/g, "")
+    .replace(/[()]/g, "-")
+    .trim()
+
+  if (cleaned === "" || cleaned === "-" || cleaned === "N/A") return null
+
+  const num = parseFloat(cleaned)
+  return isNaN(num) ? null : num
+}
+
+function parseString(val: string | undefined | null): string | null {
+  if (val === undefined || val === null) return null
+  const str = val.toString().trim()
+  return str === "" || str === "N/A" ? null : str
+}
+
+export async function getDashboardData(): Promise<SheetDataResult | null> {
   const auth = getGoogleAuth()
 
   if (!auth) {
@@ -61,99 +115,129 @@ export async function getCompsTableData(): Promise<SheetDataResult | null> {
   try {
     const sheets = google.sheets({ version: "v4", auth })
 
-    // Fetch the Comps Table data
+    // Fetch the Dashboard data - extended range to capture all columns
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
-      range: `'${COMPS_TABLE_SHEET}'!A:Z`
+      range: `'${DASHBOARD_SHEET}'!A:AJ`
     })
 
     const rows = response.data.values
 
     if (!rows || rows.length < 2) {
-      console.error("No data found in Comps Table sheet")
+      console.error("No data found in Dashboard sheet")
       return null
     }
 
     // First row is headers
-    const headers = rows[0].map((h: string) => h?.toLowerCase().trim() || "")
+    const headers = rows[0].map((h: string) => h?.toString().toLowerCase().trim() || "")
 
-    // Find column indices
-    const colIndex = (name: string) => {
-      const variations = [name, name.replace(/_/g, " "), name.replace(/ /g, "_")]
-      for (const v of variations) {
-        const idx = headers.findIndex((h: string) => h.includes(v.toLowerCase()))
+    // Build column index map
+    const colIndex = (searchTerms: string[]): number => {
+      for (const term of searchTerms) {
+        const idx = headers.findIndex((h: string) =>
+          h === term.toLowerCase() || h.includes(term.toLowerCase())
+        )
         if (idx !== -1) return idx
       }
       return -1
     }
 
-    const tickerCol = colIndex("ticker")
-    const nameCol = colIndex("name") !== -1 ? colIndex("name") : colIndex("company")
-    const priceCol = colIndex("price")
-    const btcHoldingsCol = colIndex("btc") !== -1 ? colIndex("btc") : colIndex("holdings")
-    const sharesCol = colIndex("shares")
-    const marketCapCol = colIndex("market cap") !== -1 ? colIndex("market cap") : colIndex("mkt cap")
-    const evCol = colIndex("ev")
-    const btcNavCol = colIndex("btc nav") !== -1 ? colIndex("btc nav") : colIndex("nav")
-    const mNavCol = colIndex("mnav")
-    const debtCol = colIndex("debt")
-    const cashCol = colIndex("cash")
-    const preferredsCol = colIndex("preferreds") !== -1 ? colIndex("preferreds") : colIndex("pref")
-    const satsPerShareCol = colIndex("sats")
-    const btcPerShareCol = colIndex("btc/share") !== -1 ? colIndex("btc/share") : colIndex("btc per share")
-    const changeCol = colIndex("change") !== -1 ? colIndex("change") : colIndex("24h")
+    // Map columns based on header names
+    const cols = {
+      rank: colIndex(["rank"]),
+      name: colIndex(["company name", "name"]),
+      ticker: colIndex(["ticker"]),
+      btcHoldings: colIndex(["btc holdings", "btc"]),
+      basicMNav: colIndex(["basic mnav"]),
+      dilutedMNav: colIndex(["diluted mnav"]),
+      price: colIndex(["price"]),
+      priceChange1d: colIndex(["1d change", "1d"]),
+      priceAt1xDilutedMNav: colIndex(["1x d. mnav price", "1x diluted mnav", "1x d."]),
+      enterpriseValueUsd: colIndex(["enterprise value (usd)", "enterprise value", "ev"]),
+      avgVolumeUsd: colIndex(["avg volume (usd)", "avg volume usd"]),
+      btcNavUsd: colIndex(["btc nav (usd)", "btc nav"]),
+      debtUsd: colIndex(["total debt", "debt"]),
+      high1y: colIndex(["1y high"]),
+      high1yDelta: colIndex(["1y high delta"]),
+      avg200d: colIndex(["200d avg"]),
+      avg200dDelta: colIndex(["200d avg delta"]),
+      insiderBuySellRatio: colIndex(["insider buy/sell ratio", "insider"]),
+      cashUsd: colIndex(["cash and equiv", "cash"]),
+      marketCapUsd: colIndex(["market cap"]),
+      sharesOutstanding: colIndex(["shares outstanding"]),
+      dilutedShares: colIndex(["diluted shares"]),
+      dilutedMarketCapUsd: colIndex(["diluted market cap"]),
+      dilutedEvUsd: colIndex(["diluted ev (usd)", "diluted ev"]),
+      exchange: colIndex(["exchange"]),
+      avgVolumeShares: colIndex(["avg volume (shares)"]),
+      priceChange5d: colIndex(["5d"]),
+      priceChange1m: colIndex(["1m"]),
+      priceChangeYtd: colIndex(["ytd"]),
+      priceChange1y: colIndex(["1y"]),
+      currencyCode: colIndex(["currency code", "currency"]),
+      conversionRate: colIndex(["conversion rate"]),
+      region: colIndex(["region"]),
+      subRegion: colIndex(["sub-region", "subregion"]),
+      category: colIndex(["category"])
+    }
 
-    // Parse data rows
+    // Parse data rows (skip header)
     const companies: SheetCompanyData[] = []
 
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i]
-      if (!row || !row[tickerCol]) continue
+      if (!row) continue
 
-      const parseNum = (val: string | undefined): number | null => {
-        if (!val) return null
-        const cleaned = val.toString().replace(/[$,%,\s]/g, "").replace(/[()]/g, "-")
-        const num = parseFloat(cleaned)
-        return isNaN(num) ? null : num
-      }
+      const ticker = parseString(row[cols.ticker])
+      const name = parseString(row[cols.name])
 
+      // Skip rows without ticker or name
+      if (!ticker && !name) continue
+
+      const dilutedMNavValue = parseNumber(row[cols.dilutedMNav])
       companies.push({
-        ticker: row[tickerCol]?.toString().trim() || "",
-        name: row[nameCol]?.toString().trim() || "",
-        price: parseNum(row[priceCol]),
-        btcHoldings: parseNum(row[btcHoldingsCol]),
-        sharesOutstanding: parseNum(row[sharesCol]),
-        marketCapUsd: parseNum(row[marketCapCol]),
-        evUsd: parseNum(row[evCol]),
-        btcNav: parseNum(row[btcNavCol]),
-        mNav: parseNum(row[mNavCol]),
-        debtUsd: parseNum(row[debtCol]),
-        cashUsd: parseNum(row[cashCol]),
-        preferredsUsd: parseNum(row[preferredsCol]),
-        satsPerShare: parseNum(row[satsPerShareCol]),
-        btcPerShare: parseNum(row[btcPerShareCol]),
-        change24h: parseNum(row[changeCol])
+        rank: parseNumber(row[cols.rank]),
+        name: name || "",
+        ticker: ticker || "",
+        btcHoldings: parseNumber(row[cols.btcHoldings]),
+        basicMNav: parseNumber(row[cols.basicMNav]),
+        dilutedMNav: dilutedMNavValue,
+        mNav: dilutedMNavValue,  // Legacy alias
+        price: parseNumber(row[cols.price]),
+        priceChange1d: parseNumber(row[cols.priceChange1d]),
+        priceAt1xDilutedMNav: parseNumber(row[cols.priceAt1xDilutedMNav]),
+        enterpriseValueUsd: parseNumber(row[cols.enterpriseValueUsd]),
+        avgVolumeUsd: parseNumber(row[cols.avgVolumeUsd]),
+        btcNavUsd: parseNumber(row[cols.btcNavUsd]),
+        debtUsd: parseNumber(row[cols.debtUsd]),
+        high1y: parseNumber(row[cols.high1y]),
+        high1yDelta: parseNumber(row[cols.high1yDelta]),
+        avg200d: parseNumber(row[cols.avg200d]),
+        avg200dDelta: parseNumber(row[cols.avg200dDelta]),
+        insiderBuySellRatio: parseNumber(row[cols.insiderBuySellRatio]),
+        cashUsd: parseNumber(row[cols.cashUsd]),
+        marketCapUsd: parseNumber(row[cols.marketCapUsd]),
+        sharesOutstanding: parseNumber(row[cols.sharesOutstanding]),
+        dilutedShares: parseNumber(row[cols.dilutedShares]),
+        dilutedMarketCapUsd: parseNumber(row[cols.dilutedMarketCapUsd]),
+        dilutedEvUsd: parseNumber(row[cols.dilutedEvUsd]),
+        exchange: parseString(row[cols.exchange]),
+        avgVolumeShares: parseNumber(row[cols.avgVolumeShares]),
+        priceChange5d: parseNumber(row[cols.priceChange5d]),
+        priceChange1m: parseNumber(row[cols.priceChange1m]),
+        priceChangeYtd: parseNumber(row[cols.priceChangeYtd]),
+        priceChange1y: parseNumber(row[cols.priceChange1y]),
+        currencyCode: parseString(row[cols.currencyCode]),
+        conversionRate: parseNumber(row[cols.conversionRate]),
+        region: parseString(row[cols.region]),
+        subRegion: parseString(row[cols.subRegion]),
+        category: parseString(row[cols.category])
       })
-    }
-
-    // Try to extract BTC price from a cell (often in a header area)
-    let btcPrice: number | null = null
-    const btcPriceCell = rows.find((row: string[]) =>
-      row.some((cell: string) => cell?.toString().toLowerCase().includes("btc price"))
-    )
-    if (btcPriceCell) {
-      const priceIdx = btcPriceCell.findIndex((cell: string) =>
-        cell?.toString().toLowerCase().includes("btc price")
-      )
-      if (priceIdx !== -1 && btcPriceCell[priceIdx + 1]) {
-        const priceStr = btcPriceCell[priceIdx + 1].toString().replace(/[$,]/g, "")
-        btcPrice = parseFloat(priceStr) || null
-      }
     }
 
     return {
       companies: companies.filter(c => c.ticker),
-      btcPrice,
+      btcPrice: null,  // BTC price is now fetched separately via btc-prices cron
       lastUpdated: new Date(),
       source: "google_sheets"
     }
@@ -163,8 +247,13 @@ export async function getCompsTableData(): Promise<SheetDataResult | null> {
   }
 }
 
+// Legacy function for backward compatibility
+export async function getCompsTableData(): Promise<SheetDataResult | null> {
+  return getDashboardData()
+}
+
 export async function getSheetDataAsBackup(): Promise<Map<string, SheetCompanyData> | null> {
-  const data = await getCompsTableData()
+  const data = await getDashboardData()
 
   if (!data) {
     return null

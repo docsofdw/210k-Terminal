@@ -1,91 +1,120 @@
-# Company Master List
+# Company Data Source
 
-15 treasury companies to track at launch.
+> **Note:** As of January 2026, company data is sourced from the BTCTCs Master Google Sheet which tracks ~100 Bitcoin treasury companies. See [COMPS_TABLE.md](./COMPS_TABLE.md) for detailed documentation.
 
-## Tracked Companies
+## Current Data Source
 
-| # | Company Name | Ticker | Exchange | Country | Currency |
-|---|--------------|--------|----------|---------|----------|
-| 1 | American Bitcoin Corp. | ABTC | NASDAQ | USA | USD |
-| 2 | Bitcoin Treasury Corporation | BTCT.V | TSX-V | Canada | CAD |
-| 3 | Oranje S.A. | OBTC3 | B3 | Brazil | BRL |
-| 4 | DigitalX Limited | DCC.AX | ASX | Australia | AUD |
-| 5 | Aifinyo AG | EBEN.HM | Hamburg | Germany | EUR |
-| 6 | Treasury BV | TRSR | Private | Netherlands | EUR |
-| 7 | Metaplanet Inc. | 3350.T | Tokyo | Japan | JPY |
-| 8 | Matador Technologies Inc. | MATA.V | CSE | Canada | CAD |
-| 9 | Moon Inc | 1723.HK | HKEX | Hong Kong | HKD |
-| 10 | DV8 Public Company Limited | DV8.BK | SET | Thailand | THB |
-| 11 | The Smarter Web Company Plc | SWC.AQ | Aquis | UK | GBP |
-| 12 | Capital B | ALCPB.PA | Euronext | France | EUR |
-| 13 | Satsuma Technology Plc | SATS.L | LSE | UK | GBP |
-| 14 | Bitplanet Inc. | 049470.KQ | KOSDAQ | South Korea | KRW |
-| 15 | LQWD Technologies Corp. | LQWD.V | TSX-V | Canada | CAD |
+### BTCTCs Master Sheet
 
----
+| Setting | Value |
+|---------|-------|
+| Companies Tracked | ~100 |
+| Data Source | External Google Sheet |
+| Sync Frequency | Every 4 hours |
+| Spreadsheet ID | `1_whntepzncCFsn-K1oyL5Epqh5D6mauAOnb_Zs7svkk` |
+| Sheet Tab | `Dashboard` |
 
-## By Region
+### Company Categories
 
-### North America (4)
-- American Bitcoin Corp. (ABTC) - USA
-- Bitcoin Treasury Corporation (BTCT.V) - Canada
-- Matador Technologies Inc. (MATA.V) - Canada
-- LQWD Technologies Corp. (LQWD.V) - Canada
+Companies are categorized into:
 
-### Europe (5)
-- Aifinyo AG (EBEN.HM) - Germany
-- Treasury BV (TRSR) - Netherlands (Private)
-- The Smarter Web Company Plc (SWC.AQ) - UK
-- Capital B (ALCPB.PA) - France
-- Satsuma Technology Plc (SATS.L) - UK
+| Category | Description |
+|----------|-------------|
+| Treasury Company | Pure-play Bitcoin treasury companies (e.g., Strategy, CEPO) |
+| Miner | Bitcoin mining companies with BTC holdings (e.g., MARA, RIOT) |
+| Other | Companies with Bitcoin on balance sheet (e.g., Tesla, Block) |
 
-### Asia-Pacific (5)
-- Metaplanet Inc. (3350.T) - Japan
-- Moon Inc (1723.HK) - Hong Kong
-- DV8 Public Company Limited (DV8.BK) - Thailand
-- DigitalX Limited (DCC.AX) - Australia
-- Bitplanet Inc. (049470.KQ) - South Korea
+### Regions
 
-### South America (1)
-- Oranje S.A. (OBTC3) - Brazil
+| Region | Examples |
+|--------|----------|
+| North America | Strategy, MARA, Tesla, Coinbase |
+| Asia | Metaplanet (Japan), Boyaa (Hong Kong) |
+| Europe | Bitcoin Group SE (Germany), Aker ASA (Norway) |
+| South America | OranjeBTC (Brazil), Méliuz (Brazil) |
 
 ---
 
-## By Currency
+## Sync Process
 
-| Currency | Companies |
-|----------|-----------|
-| USD | ABTC |
-| CAD | BTCT.V, MATA.V, LQWD.V |
-| EUR | EBEN.HM, TRSR, ALCPB.PA |
-| GBP | SWC.AQ, SATS.L |
-| JPY | 3350.T |
-| HKD | 1723.HK |
-| AUD | DCC.AX |
-| BRL | OBTC3 |
-| THB | DV8.BK |
-| KRW | 049470.KQ |
+### Automatic Sync
 
----
+Data syncs automatically every 4 hours via the `/api/cron/sync-sheets` endpoint.
 
-## Special Notes
+**Schedule:** `0 */4 * * *` (12 AM, 4 AM, 8 AM, 12 PM, 4 PM, 8 PM UTC)
 
-### Private Company
-- **Treasury BV (TRSR)**: Private company - requires manual data entry, no automated price feed
+### Manual Sync
 
-### Price Format
-- **SATS.L**: LSE quotes prices in pence (divide by 100 for GBP)
+```bash
+# Run the sync script
+npx tsx db/seed/sync-from-sheets.ts
+```
 
-### Alternate Tickers
-- **EBEN.HM**: May need Frankfurt ticker (AIYN.F) as fallback
-- **SWC.AQ**: Aquis exchange - may need alternative LSE ticker
+### Sync Requirements
+
+1. Google Sheet must be shared with the service account:
+   ```
+   id-10k-terminal-sheet@k-terminal-485321.iam.gserviceaccount.com
+   ```
+
+2. Environment variable must be set:
+   ```bash
+   GOOGLE_SERVICE_ACCOUNT_KEY='{"type":"service_account",...}'
+   ```
 
 ---
 
-## Watchlist
+## Key Companies (Top 20 by BTC Holdings)
 
-Additional companies may be added via the Watchlist feature without full tracking. Watchlist companies:
-- Receive automated price updates
-- Require manual BTC holdings entry
-- No AI monitoring unless promoted to full tracking
-- Calculate basic mNAV for comparison
+| Rank | Company | Ticker | BTC Holdings | Category |
+|------|---------|--------|--------------|----------|
+| 1 | Strategy | MSTR | 712,647 | Treasury Company |
+| 2 | MARA Holdings | MARA | 53,250 | Miner |
+| 3 | Twenty One Capital | XXI | 43,514 | Other |
+| 4 | Metaplanet Inc. | 3350.T | 35,102 | Treasury Company |
+| 5 | Bitcoin Standard Treasury | CEPO | 30,021 | Treasury Company |
+| 6 | Bullish | BLSH | 24,300 | Other |
+| 7 | Riot Platforms | RIOT | 18,005 | Miner |
+| 8 | Coinbase Global | COIN | 14,548 | Other |
+| 9 | Hut 8 Mining Corp | HUT | 13,696 | Miner |
+| 10 | Strive | ASST | 13,132 | Other |
+| 11 | CleanSpark | CLSK | 13,099 | Miner |
+| 12 | Trump Media | DJT | 11,542 | Other |
+| 13 | Tesla | TSLA | 11,509 | Other |
+| 14 | Block | XYZ | 8,780 | Other |
+| 15 | Cango Inc | CANG | 7,874 | Other |
+| 16 | GD Culture Group | GDC | 7,500 | Other |
+| 17 | Galaxy Digital | GLXY | 6,894 | Other |
+| 18 | American Bitcoin Corp | ABTC | 5,843 | Treasury Company |
+| 19 | Next Technology | NXTT | 5,833 | Other |
+| 20 | Nakamoto Inc | NAKA | 5,398 | Other |
+
+*Data as of last sync. See live data at `/dashboard/comps`.*
+
+---
+
+## Legacy: Original 15 Companies
+
+The platform originally launched with 15 manually-tracked companies. These are now included in the larger ~100 company dataset:
+
+| Original Company | Current Status |
+|------------------|----------------|
+| American Bitcoin Corp. (ABTC) | Included |
+| Bitcoin Treasury Corp. (BTCT.V) | Included |
+| Oranje S.A. (OBTC3.SA) | Included |
+| DigitalX (DCC.AX) | Included |
+| Metaplanet (3350.T) | Included |
+| The Smarter Web Co. (SWC.AQ) | Included |
+| Capital B (ALCPB.PA) | Included |
+| Satsuma Technology (SATS.L) | Included |
+| Bitplanet (049470.KQ) | Included |
+| LQWD Technologies (LQWD.V) | Included |
+| Treasury BV (TRSR) | Included |
+
+---
+
+## Related Documentation
+
+- [Comps Table](./COMPS_TABLE.md) - Full comps table documentation
+- [Data Model](./DATA_MODEL.md) - Database schema
+- [API Integrations](./API_INTEGRATIONS.md) - External APIs

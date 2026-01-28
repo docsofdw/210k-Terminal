@@ -2,8 +2,7 @@ import { config } from "dotenv"
 import { drizzle } from "drizzle-orm/postgres-js"
 import postgres from "postgres"
 import { companies } from "../schema/companies"
-import { btcPrices } from "../schema/btc-prices"
-import { eq } from "drizzle-orm"
+import { eq, sql } from "drizzle-orm"
 import { google } from "googleapis"
 
 config({ path: ".env.local" })
@@ -16,53 +15,9 @@ if (!databaseUrl) {
 const client = postgres(databaseUrl, { prepare: false })
 const db = drizzle(client)
 
-// Sheet configuration
-const SPREADSHEET_ID = "1fNQGJIaDT3czM7Bqd9dZ6WTJYk-54niL9F3Pe9zYgpQ"
-const COMPS_TABLE_SHEET = "Comps Table"
-
-// Map sheet company names to database tickers
-// Based on actual column headers in the Google Sheet
-const COMPANY_NAME_TO_TICKER: Record<string, string> = {
-  // Exact matches from sheet column headers (Row 3)
-  "Strategy": "MSTR",           // Column C - MicroStrategy (not in DB)
-  "Metaplanet": "3350.T",       // Column D
-  "LQWD": "LQWD.V",             // Column E
-  "Matador": "MATA.V",          // Column F
-  "Moon Inc": "1723.HK",        // Column G
-  "Smarter Web Company": "SWC.AQ", // Column H
-  "Capital B": "ALCPB.PA",      // Column I
-  "H100": "H100",               // Column J - not in DB
-  "DV8": "DV8.BK",              // Column K
-  "BTCT": "BTCT.V",             // Column L
-  "satsuma": "SATS.L",          // Column M
-  "DigitalX": "DCC.AX",         // Column N
-  "aifinyo": "EBEN.HM",         // Column O
-  "bitplanet": "049470.KQ",     // Column P
-  "oranje": "OBTC3",            // Column Q
-  "ABTC": "ABTC",               // Column R
-
-  // Alternate capitalizations
-  "Satsuma": "SATS.L",
-  "Aifinyo": "EBEN.HM",
-  "Bitplanet": "049470.KQ",
-  "Oranje": "OBTC3",
-}
-
-// Row indices in the sheet (0-indexed from A1)
-const ROW_INDICES = {
-  COMPANY_NAMES: 2,      // Row 3 - company names
-  BTC_HOLDINGS: 3,       // Row 4 - BTC in treasury
-  BTC_NAV_USD: 4,        // Row 5 - BTC NAV USD
-  SHARE_COUNT: 5,        // Row 6 - Share count
-  LOCAL_PRICE: 6,        // Row 7 - Local price
-  MKT_CAP_LOCAL: 7,      // Row 8 - Mkt Cap (local)
-  MKT_CAP_USD: 8,        // Row 9 - Mkt Cap USD
-  DEBT_USD: 9,           // Row 10 - Debt (USD)
-  PREFERREDS: 10,        // Row 11 - Preferreds
-  CASH_USD: 11,          // Row 12 - Cash (USD)
-  EV_USD: 13,            // Row 14 - EV USD
-  MNAV: 14,              // Row 15 - mNAV
-}
+// New BTCTCs Master Sheet configuration
+const SPREADSHEET_ID = "1_whntepzncCFsn-K1oyL5Epqh5D6mauAOnb_Zs7svkk"
+const DASHBOARD_SHEET = "Dashboard"
 
 function getGoogleAuth() {
   const credentials = process.env.GOOGLE_SERVICE_ACCOUNT_KEY
@@ -78,171 +33,272 @@ function getGoogleAuth() {
   })
 }
 
-function parseNumber(val: string | undefined | null): number | null {
-  if (!val) return null
-  // Remove currency symbols, commas, spaces, and percentage signs
-  const cleaned = val.toString()
+function parseNumber(val: string | undefined | null): string | null {
+  if (val === undefined || val === null || val === "") return null
+  const cleaned = val
+    .toString()
     .replace(/[$€£¥₩฿,\s%]/g, "")
-    .replace(/[()]/g, "-") // Handle negative numbers in parentheses
+    .replace(/[()]/g, "-")
     .trim()
 
-  if (cleaned === "" || cleaned === "-") return null
+  if (cleaned === "" || cleaned === "-" || cleaned === "N/A") return null
 
   const num = parseFloat(cleaned)
-  return isNaN(num) ? null : num
+  return isNaN(num) ? null : num.toString()
 }
 
-function findTicker(companyName: string): string | null {
-  // Direct match
-  if (COMPANY_NAME_TO_TICKER[companyName]) {
-    return COMPANY_NAME_TO_TICKER[companyName]
-  }
-
-  // Case-insensitive match
-  const lowerName = companyName.toLowerCase().trim()
-  for (const [name, ticker] of Object.entries(COMPANY_NAME_TO_TICKER)) {
-    if (name.toLowerCase() === lowerName) {
-      return ticker
-    }
-  }
-
-  // Partial match
-  for (const [name, ticker] of Object.entries(COMPANY_NAME_TO_TICKER)) {
-    if (lowerName.includes(name.toLowerCase()) || name.toLowerCase().includes(lowerName)) {
-      return ticker
-    }
-  }
-
-  return null
+function parseString(val: string | undefined | null): string | null {
+  if (val === undefined || val === null) return null
+  const str = val.toString().trim()
+  return str === "" || str === "N/A" ? null : str
 }
 
-interface CompanyData {
+interface SheetRow {
+  rank: string | null
   name: string
-  ticker: string | null
-  btcHoldings: number | null
-  sharesOutstanding: number | null
-  debtUsd: number | null
-  preferredsUsd: number | null
-  cashUsd: number | null
+  ticker: string
+  btcHoldings: string | null
+  basicMNav: string | null
+  dilutedMNav: string | null
+  price: string | null
+  priceChange1d: string | null
+  priceAt1xDilutedMNav: string | null
+  enterpriseValueUsd: string | null
+  avgVolumeUsd: string | null
+  btcNavUsd: string | null
+  debtUsd: string | null
+  high1y: string | null
+  high1yDelta: string | null
+  avg200d: string | null
+  avg200dDelta: string | null
+  insiderBuySellRatio: string | null
+  cashUsd: string | null
+  marketCapUsd: string | null
+  sharesOutstanding: string | null
+  dilutedShares: string | null
+  dilutedMarketCapUsd: string | null
+  dilutedEvUsd: string | null
+  exchange: string | null
+  avgVolumeShares: string | null
+  priceChange5d: string | null
+  priceChange1m: string | null
+  priceChangeYtd: string | null
+  priceChange1y: string | null
+  currencyCode: string | null
+  conversionRate: string | null
+  region: string | null
+  subRegion: string | null
+  category: string | null
 }
 
 async function syncFromSheets() {
-  console.log("🔄 Syncing company data from Google Sheets...")
+  console.log("🔄 Syncing company data from BTCTCs Master Sheet...")
   console.log(`📊 Spreadsheet ID: ${SPREADSHEET_ID}`)
-  console.log(`📋 Sheet: ${COMPS_TABLE_SHEET}\n`)
+  console.log(`📋 Sheet: ${DASHBOARD_SHEET}\n`)
 
   const auth = getGoogleAuth()
   const sheets = google.sheets({ version: "v4", auth })
 
-  // Fetch a wide range to capture all companies (A through AZ for ~52 columns)
+  // Fetch all data from Dashboard sheet
   const response = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: `'${COMPS_TABLE_SHEET}'!A1:AZ20`
+    range: `'${DASHBOARD_SHEET}'!A:AJ`
   })
 
   const rows = response.data.values
-  if (!rows || rows.length < 15) {
-    throw new Error("Insufficient data in sheet")
+  if (!rows || rows.length < 2) {
+    throw new Error("No data found in Dashboard sheet")
   }
 
-  // Debug: print what we got
-  console.log("📝 Sheet data preview:")
-  console.log(`   Row 3 (names): ${rows[ROW_INDICES.COMPANY_NAMES]?.slice(0, 10).join(" | ")}`)
-  console.log(`   Row 4 (BTC):   ${rows[ROW_INDICES.BTC_HOLDINGS]?.slice(0, 10).join(" | ")}`)
-  console.log("")
+  // First row is headers
+  const headers = rows[0].map((h: string) => h?.toString().toLowerCase().trim() || "")
 
-  // Extract BTC price from B3 cell
-  const btcPriceCell = rows[2]?.[1] // Row 3, Column B
-  const btcPrice = parseNumber(btcPriceCell)
-  console.log(`💰 BTC Price: $${btcPrice?.toLocaleString() ?? "N/A"}`)
+  // Build column index map
+  const colIndex = (searchTerms: string[]): number => {
+    for (const term of searchTerms) {
+      const idx = headers.findIndex((h: string) =>
+        h === term.toLowerCase() || h.includes(term.toLowerCase())
+      )
+      if (idx !== -1) return idx
+    }
+    return -1
+  }
 
-  // Get company names from row 3 (index 2), starting from column C (index 2)
-  const companyRow = rows[ROW_INDICES.COMPANY_NAMES]
-  const btcRow = rows[ROW_INDICES.BTC_HOLDINGS]
-  const shareRow = rows[ROW_INDICES.SHARE_COUNT]
-  const debtRow = rows[ROW_INDICES.DEBT_USD]
-  const preferredsRow = rows[ROW_INDICES.PREFERREDS]
-  const cashRow = rows[ROW_INDICES.CASH_USD]
+  // Map columns
+  const cols = {
+    rank: colIndex(["rank"]),
+    name: colIndex(["company name", "name"]),
+    ticker: colIndex(["ticker"]),
+    btcHoldings: colIndex(["btc holdings", "btc"]),
+    basicMNav: colIndex(["basic mnav"]),
+    dilutedMNav: colIndex(["diluted mnav"]),
+    price: colIndex(["price"]),
+    priceChange1d: colIndex(["1d change", "1d"]),
+    priceAt1xDilutedMNav: colIndex(["1x d. mnav price", "1x diluted mnav", "1x d."]),
+    enterpriseValueUsd: colIndex(["enterprise value (usd)", "enterprise value", "ev"]),
+    avgVolumeUsd: colIndex(["avg volume (usd)", "avg volume usd"]),
+    btcNavUsd: colIndex(["btc nav (usd)", "btc nav"]),
+    debtUsd: colIndex(["total debt", "debt"]),
+    high1y: colIndex(["1y high"]),
+    high1yDelta: colIndex(["1y high delta"]),
+    avg200d: colIndex(["200d avg"]),
+    avg200dDelta: colIndex(["200d avg delta"]),
+    insiderBuySellRatio: colIndex(["insider buy/sell ratio", "insider"]),
+    cashUsd: colIndex(["cash and equiv", "cash"]),
+    marketCapUsd: colIndex(["market cap"]),
+    sharesOutstanding: colIndex(["shares outstanding"]),
+    dilutedShares: colIndex(["diluted shares"]),
+    dilutedMarketCapUsd: colIndex(["diluted market cap"]),
+    dilutedEvUsd: colIndex(["diluted ev (usd)", "diluted ev"]),
+    exchange: colIndex(["exchange"]),
+    avgVolumeShares: colIndex(["avg volume (shares)"]),
+    priceChange5d: colIndex(["5d"]),
+    priceChange1m: colIndex(["1m"]),
+    priceChangeYtd: colIndex(["ytd"]),
+    priceChange1y: colIndex(["1y"]),
+    currencyCode: colIndex(["currency code", "currency"]),
+    conversionRate: colIndex(["conversion rate"]),
+    region: colIndex(["region"]),
+    subRegion: colIndex(["sub-region", "subregion"]),
+    category: colIndex(["category"])
+  }
 
-  const companiesData: CompanyData[] = []
+  console.log("📝 Column mapping:")
+  console.log(`   Ticker: col ${cols.ticker}, Name: col ${cols.name}, BTC: col ${cols.btcHoldings}`)
+  console.log(`   Price: col ${cols.price}, mNAV: col ${cols.dilutedMNav}, EV: col ${cols.enterpriseValueUsd}\n`)
 
-  // Start from column C (index 2) to skip label columns
-  for (let col = 2; col < companyRow.length; col++) {
-    const name = companyRow[col]?.toString().trim()
-    if (!name) continue
+  // Parse all rows
+  const companiesData: SheetRow[] = []
 
-    const ticker = findTicker(name)
+  for (let i = 1; i < rows.length; i++) {
+    const row = rows[i]
+    if (!row) continue
+
+    const ticker = parseString(row[cols.ticker])
+    const name = parseString(row[cols.name])
+
+    if (!ticker || !name) continue
 
     companiesData.push({
+      rank: parseNumber(row[cols.rank]),
       name,
       ticker,
-      btcHoldings: parseNumber(btcRow?.[col]),
-      sharesOutstanding: parseNumber(shareRow?.[col]),
-      debtUsd: parseNumber(debtRow?.[col]),
-      preferredsUsd: parseNumber(preferredsRow?.[col]),
-      cashUsd: parseNumber(cashRow?.[col]),
+      btcHoldings: parseNumber(row[cols.btcHoldings]),
+      basicMNav: parseNumber(row[cols.basicMNav]),
+      dilutedMNav: parseNumber(row[cols.dilutedMNav]),
+      price: parseNumber(row[cols.price]),
+      priceChange1d: parseNumber(row[cols.priceChange1d]),
+      priceAt1xDilutedMNav: parseNumber(row[cols.priceAt1xDilutedMNav]),
+      enterpriseValueUsd: parseNumber(row[cols.enterpriseValueUsd]),
+      avgVolumeUsd: parseNumber(row[cols.avgVolumeUsd]),
+      btcNavUsd: parseNumber(row[cols.btcNavUsd]),
+      debtUsd: parseNumber(row[cols.debtUsd]),
+      high1y: parseNumber(row[cols.high1y]),
+      high1yDelta: parseNumber(row[cols.high1yDelta]),
+      avg200d: parseNumber(row[cols.avg200d]),
+      avg200dDelta: parseNumber(row[cols.avg200dDelta]),
+      insiderBuySellRatio: parseNumber(row[cols.insiderBuySellRatio]),
+      cashUsd: parseNumber(row[cols.cashUsd]),
+      marketCapUsd: parseNumber(row[cols.marketCapUsd]),
+      sharesOutstanding: parseNumber(row[cols.sharesOutstanding]),
+      dilutedShares: parseNumber(row[cols.dilutedShares]),
+      dilutedMarketCapUsd: parseNumber(row[cols.dilutedMarketCapUsd]),
+      dilutedEvUsd: parseNumber(row[cols.dilutedEvUsd]),
+      exchange: parseString(row[cols.exchange]),
+      avgVolumeShares: parseNumber(row[cols.avgVolumeShares]),
+      priceChange5d: parseNumber(row[cols.priceChange5d]),
+      priceChange1m: parseNumber(row[cols.priceChange1m]),
+      priceChangeYtd: parseNumber(row[cols.priceChangeYtd]),
+      priceChange1y: parseNumber(row[cols.priceChange1y]),
+      currencyCode: parseString(row[cols.currencyCode]),
+      conversionRate: parseNumber(row[cols.conversionRate]),
+      region: parseString(row[cols.region]),
+      subRegion: parseString(row[cols.subRegion]),
+      category: parseString(row[cols.category])
     })
   }
 
-  console.log(`\n📊 Found ${companiesData.length} companies in sheet:\n`)
+  console.log(`📊 Found ${companiesData.length} companies in sheet\n`)
 
-  // Update database
+  // Upsert companies (update existing by ticker, insert new)
   let updated = 0
-  let skipped = 0
-  let notFound = 0
-
+  let inserted = 0
   for (const data of companiesData) {
-    if (!data.ticker) {
-      console.log(`⚠️  No ticker mapping for: "${data.name}"`)
-      notFound++
-      continue
+    try {
+      // Check if company exists
+      const [existing] = await db
+        .select()
+        .from(companies)
+        .where(eq(companies.ticker, data.ticker))
+        .limit(1)
+
+      const companyData = {
+        rank: data.rank,
+        name: data.name,
+        yahooTicker: data.ticker, // Use ticker as default
+        exchange: data.exchange,
+        currencyCode: data.currencyCode || "USD",
+        conversionRate: data.conversionRate,
+        region: data.region,
+        subRegion: data.subRegion,
+        category: data.category,
+        btcHoldings: data.btcHoldings,
+        price: data.price,
+        priceChange1d: data.priceChange1d,
+        marketCapUsd: data.marketCapUsd,
+        sharesOutstanding: data.sharesOutstanding,
+        dilutedShares: data.dilutedShares,
+        dilutedMarketCapUsd: data.dilutedMarketCapUsd,
+        basicMNav: data.basicMNav,
+        dilutedMNav: data.dilutedMNav,
+        priceAt1xDilutedMNav: data.priceAt1xDilutedMNav,
+        enterpriseValueUsd: data.enterpriseValueUsd,
+        dilutedEvUsd: data.dilutedEvUsd,
+        btcNavUsd: data.btcNavUsd,
+        debtUsd: data.debtUsd,
+        cashUsd: data.cashUsd,
+        avgVolumeUsd: data.avgVolumeUsd,
+        avgVolumeShares: data.avgVolumeShares,
+        high1y: data.high1y,
+        high1yDelta: data.high1yDelta,
+        avg200d: data.avg200d,
+        avg200dDelta: data.avg200dDelta,
+        priceChange5d: data.priceChange5d,
+        priceChange1m: data.priceChange1m,
+        priceChangeYtd: data.priceChangeYtd,
+        priceChange1y: data.priceChange1y,
+        insiderBuySellRatio: data.insiderBuySellRatio,
+        lastSyncedAt: new Date(),
+        syncSource: "Google Sheets sync",
+        updatedAt: new Date()
+      }
+
+      if (existing) {
+        // Update existing company
+        await db
+          .update(companies)
+          .set(companyData)
+          .where(eq(companies.id, existing.id))
+        updated++
+        console.log(`🔄 Updated: ${data.ticker.padEnd(12)} | ${data.name.slice(0, 30).padEnd(30)} | BTC: ${data.btcHoldings?.padStart(12) ?? "N/A".padStart(12)}`)
+      } else {
+        // Insert new company
+        await db.insert(companies).values({
+          ...companyData,
+          ticker: data.ticker
+        })
+        inserted++
+        console.log(`✅ Inserted: ${data.ticker.padEnd(12)} | ${data.name.slice(0, 30).padEnd(30)} | BTC: ${data.btcHoldings?.padStart(12) ?? "N/A".padStart(12)}`)
+      }
+    } catch (error) {
+      console.log(`❌ Failed: ${data.ticker} - ${error instanceof Error ? error.message : "Unknown error"}`)
     }
-
-    // Find company in database
-    const [existing] = await db
-      .select()
-      .from(companies)
-      .where(eq(companies.ticker, data.ticker))
-      .limit(1)
-
-    if (!existing) {
-      console.log(`⚠️  Ticker not in database: ${data.ticker} (${data.name})`)
-      skipped++
-      continue
-    }
-
-    // Update company with financial data
-    await db
-      .update(companies)
-      .set({
-        btcHoldings: data.btcHoldings?.toString() ?? null,
-        sharesOutstanding: data.sharesOutstanding?.toString() ?? null,
-        debtUsd: data.debtUsd?.toString() ?? null,
-        preferredsUsd: data.preferredsUsd?.toString() ?? null,
-        cashUsd: data.cashUsd?.toString() ?? null,
-        btcHoldingsDate: new Date(),
-        btcHoldingsSource: "Google Sheets sync",
-        updatedAt: new Date(),
-      })
-      .where(eq(companies.id, existing.id))
-
-    console.log(`✅ Updated: ${existing.ticker.padEnd(10)} | BTC: ${data.btcHoldings?.toLocaleString().padStart(12) ?? "N/A".padStart(12)} | Shares: ${data.sharesOutstanding?.toLocaleString().padStart(15) ?? "N/A".padStart(15)}`)
-    updated++
-  }
-
-  // Update BTC price if we got one
-  if (btcPrice) {
-    await db.insert(btcPrices).values({
-      priceUsd: btcPrice.toString(),
-      priceAt: new Date(),
-    })
-    console.log(`\n💰 Inserted BTC price: $${btcPrice.toLocaleString()}`)
   }
 
   console.log(`\n📊 Sync Summary:`)
-  console.log(`   ✅ Updated: ${updated}`)
-  console.log(`   ⚠️  Skipped (not in DB): ${skipped}`)
-  console.log(`   ❓ No ticker mapping: ${notFound}`)
+  console.log(`   🔄 Updated: ${updated}`)
+  console.log(`   ✅ Inserted: ${inserted}`)
+  console.log(`   📊 Total in sheet: ${companiesData.length}`)
   console.log(`\n✨ Sync complete!`)
 
   await client.end()
