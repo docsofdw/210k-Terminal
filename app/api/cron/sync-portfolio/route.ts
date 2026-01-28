@@ -32,7 +32,7 @@ const POSITION_TO_TICKER: Record<string, string> = {
   "That's So Meta": "3350.T"
 }
 
-const CATEGORY_MARKERS: Record<string, string> = {
+const CATEGORY_MARKERS: Record<string, "btc" | "btc_equities" | "cash" | "debt" | "other"> = {
   "BTC": "btc",
   "BTC Equities": "btc_equities",
   "Cash": "cash",
@@ -98,7 +98,7 @@ export async function GET(request: NextRequest) {
       syncedAt: Date
     }> = []
 
-    let currentCategory = "other"
+    let currentCategory: "btc" | "btc_equities" | "cash" | "debt" | "other" = "other"
     let skipped = 0
 
     for (let i = 5; i < rows.length; i++) {

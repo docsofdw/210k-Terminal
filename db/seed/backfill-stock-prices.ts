@@ -39,7 +39,7 @@ function adjustForPence(price: number, yahooTicker: string): number {
 
 interface BackfillResult {
   ticker: string
-  yahooTicker: string
+  yahooTicker: string | null
   daysBackfilled: number
   stockPricesInserted: number
   dailySnapshotsInserted: number
@@ -140,7 +140,16 @@ async function backfillCompany(
     errors: []
   }
 
-  console.log(`\n📊 Backfilling ${company.name} (${company.yahooTicker})...`)
+  if (!company.yahooTicker) {
+    result.errors.push("No Yahoo ticker configured")
+    return result
+  }
+
+  // Store as non-null after check
+  const yahooTicker = company.yahooTicker
+  const tradingCurrency = company.tradingCurrency ?? "USD"
+
+  console.log(`\n📊 Backfilling ${company.name} (${yahooTicker})...`)
 
   // Calculate date range
   const endDate = new Date()
@@ -150,7 +159,7 @@ async function backfillCompany(
   try {
     // Fetch historical prices from Yahoo Finance
     const historicalPrices = await getHistoricalPrices(
-      company.yahooTicker,
+      yahooTicker,
       startDate,
       endDate
     )
@@ -181,10 +190,10 @@ async function backfillCompany(
       }
 
       // Get FX rate for this date
-      const fxRate = await getFxRateForDate(company.tradingCurrency, snapshotDate)
+      const fxRate = await getFxRateForDate(tradingCurrency, snapshotDate)
 
       // Use close price as the stock price (adjust for LSE pence if needed)
-      const stockPrice = adjustForPence(day.close, company.yahooTicker)
+      const stockPrice = adjustForPence(day.close, yahooTicker)
 
       // Calculate USD price (fxRate is how many local currency = 1 USD)
       // So to get USD: localPrice / fxRate
@@ -230,10 +239,10 @@ async function backfillCompany(
 
       if (!dryRunArg) {
         // Adjust all OHLC prices for LSE pence if needed
-        const adjustedOpen = adjustForPence(day.open, company.yahooTicker)
-        const adjustedHigh = adjustForPence(day.high, company.yahooTicker)
-        const adjustedLow = adjustForPence(day.low, company.yahooTicker)
-        const adjustedClose = adjustForPence(day.close, company.yahooTicker)
+        const adjustedOpen = adjustForPence(day.open, yahooTicker)
+        const adjustedHigh = adjustForPence(day.high, yahooTicker)
+        const adjustedLow = adjustForPence(day.low, yahooTicker)
+        const adjustedClose = adjustForPence(day.close, yahooTicker)
 
         // Insert stock price record (in local currency)
         await db.insert(stockPrices).values({

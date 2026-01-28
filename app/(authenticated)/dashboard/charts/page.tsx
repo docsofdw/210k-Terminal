@@ -138,14 +138,14 @@ export default async function ChartsPage({ searchParams }: ChartsPageProps) {
                 {selectedCompany.ticker} Stock Price History
               </CardTitle>
               <CardDescription>
-                Historical stock price in {selectedCompany.tradingCurrency}
+                Historical stock price in {selectedCompany.tradingCurrency ?? "USD"}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <CompanyPriceChart
                 data={companySnapshots}
                 companyName={selectedCompany.name}
-                currency={selectedCompany.tradingCurrency}
+                currency={selectedCompany.tradingCurrency ?? "USD"}
               />
             </CardContent>
           </Card>

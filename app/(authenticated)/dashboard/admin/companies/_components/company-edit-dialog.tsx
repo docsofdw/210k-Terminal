@@ -135,7 +135,7 @@ export function CompanyEditDialog({
               <Label htmlFor="yahooTicker">Yahoo Ticker</Label>
               <Input
                 id="yahooTicker"
-                value={formData.yahooTicker}
+                value={formData.yahooTicker ?? ""}
                 onChange={e => setFormData({ ...formData, yahooTicker: e.target.value })}
                 required
               />
@@ -145,7 +145,7 @@ export function CompanyEditDialog({
               <Label htmlFor="exchange">Exchange</Label>
               <Input
                 id="exchange"
-                value={formData.exchange}
+                value={formData.exchange ?? ""}
                 onChange={e => setFormData({ ...formData, exchange: e.target.value })}
                 required
               />
@@ -154,7 +154,7 @@ export function CompanyEditDialog({
             <div className="space-y-2">
               <Label htmlFor="tradingCurrency">Currency</Label>
               <Select
-                value={formData.tradingCurrency}
+                value={formData.tradingCurrency ?? "USD"}
                 onValueChange={value => setFormData({ ...formData, tradingCurrency: value as "USD" | "CAD" | "EUR" | "GBP" | "JPY" | "HKD" | "AUD" | "BRL" | "THB" | "KRW" })}
               >
                 <SelectTrigger>
@@ -179,7 +179,7 @@ export function CompanyEditDialog({
               <Label htmlFor="country">Country</Label>
               <Input
                 id="country"
-                value={formData.country}
+                value={formData.country ?? ""}
                 onChange={e => setFormData({ ...formData, country: e.target.value })}
                 required
               />
