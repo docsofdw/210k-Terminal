@@ -19,7 +19,32 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "210k Terminal",
-  description: "Bitcoin treasury analytics."
+  description: "Fund analytics for 210k Capital",
+  metadataBase: new URL("https://terminal.utxo.management"),
+  openGraph: {
+    title: "210k Terminal",
+    description: "Fund analytics for 210k Capital",
+    type: "website",
+    siteName: "210k Terminal",
+    images: [
+      {
+        url: "/logos/terminal-og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "210k Fund Terminal"
+      }
+    ]
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "210k Terminal",
+    description: "Fund analytics for 210k Capital",
+    images: ["/logos/terminal-og-image.png"]
+  },
+  icons: {
+    icon: "/logos/utxo-logo-og.png",
+    apple: "/logos/utxo-logo-og.png"
+  }
 }
 
 export default function RootLayout({
