@@ -46,7 +46,7 @@ export function TeamSwitcher({
               size="lg"
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
-              <div className="flex aspect-square size-8 items-center justify-center rounded-lg overflow-hidden">
+              <div className="flex aspect-square size-8 items-center justify-center overflow-hidden">
                 {activeTeam.logoUrl ? (
                   <Image
                     src={activeTeam.logoUrl}
@@ -83,7 +83,7 @@ export function TeamSwitcher({
                 onClick={() => setActiveTeam(team)}
                 className="gap-2 p-2"
               >
-                <div className="flex size-6 items-center justify-center rounded-md border overflow-hidden">
+                <div className="flex size-6 items-center justify-center border overflow-hidden">
                   {team.logoUrl ? (
                     <Image
                       src={team.logoUrl}
