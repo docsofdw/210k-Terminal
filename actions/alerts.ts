@@ -355,3 +355,122 @@ export async function triggerAlert({
     }
   }
 }
+
+/**
+ * Check all active alerts and trigger any that meet their conditions
+ * Called by the check-alerts cron job
+ */
+export async function checkAllAlerts(): Promise<{
+  checked: number
+  triggered: number
+  errors: string[]
+}> {
+  const errors: string[] = []
+  let checked = 0
+  let triggered = 0
+
+  try {
+    // Get all active alerts with company data
+    const activeAlerts = await db
+      .select({
+        alert: alerts,
+        company: companies
+      })
+      .from(alerts)
+      .leftJoin(companies, eq(alerts.companyId, companies.id))
+      .where(eq(alerts.status, "active"))
+
+    // Get latest prices
+    const { getLatestBtcPrice, getLatestStockPrices, getLatestFxRates } = await import("./market-data")
+    const { calculateMNav, calculateEvUsd, calculateBtcNav } = await import("@/lib/calculations")
+
+    const btcPriceData = await getLatestBtcPrice()
+    const stockPricesMap = await getLatestStockPrices()
+    const fxRatesMap = await getLatestFxRates()
+
+    const btcPrice = btcPriceData ? Number(btcPriceData.priceUsd) : 0
+
+    for (const { alert, company } of activeAlerts) {
+      if (!company) continue
+      checked++
+
+      try {
+        // Get current stock price
+        const stockPrice = stockPricesMap.get(company.id)
+        if (!stockPrice && alert.type.startsWith("price")) continue
+
+        // Get FX rate for currency conversion
+        const currency = company.tradingCurrency || "USD"
+        const fxRate = fxRatesMap.get(currency)
+        const fxToUsd = fxRate ? Number(fxRate.rateToUsd) : 1
+
+        const priceLocal = stockPrice ? Number(stockPrice.price) : 0
+        const priceUsd = priceLocal * fxToUsd
+
+        // Calculate mNAV if needed
+        let currentMnav = 0
+        if (alert.type.includes("mnav")) {
+          const btcHoldings = Number(company.btcHoldings) || 0
+          const sharesOutstanding = Number(company.sharesOutstanding) || 0
+          const marketCapUsd = priceUsd * sharesOutstanding
+          const btcNav = calculateBtcNav(btcHoldings, btcPrice)
+          const evUsd = calculateEvUsd(
+            marketCapUsd,
+            Number(company.debtUsd) || 0,
+            Number(company.preferredsUsd) || 0,
+            Number(company.cashUsd) || 0
+          )
+          currentMnav = btcNav > 0 ? calculateMNav(evUsd, btcNav) : 0
+        }
+
+        const threshold = alert.threshold ? parseFloat(alert.threshold) : 0
+        let shouldTrigger = false
+        let actualValue = 0
+
+        switch (alert.type) {
+          case "price_above":
+            actualValue = priceUsd
+            shouldTrigger = priceUsd > threshold
+            break
+          case "price_below":
+            actualValue = priceUsd
+            shouldTrigger = priceUsd < threshold
+            break
+          case "mnav_above":
+            actualValue = currentMnav
+            shouldTrigger = currentMnav > threshold
+            break
+          case "mnav_below":
+            actualValue = currentMnav
+            shouldTrigger = currentMnav < threshold
+            break
+        }
+
+        if (shouldTrigger) {
+          const result = await triggerAlert({
+            alert,
+            companyName: company.name,
+            companyTicker: company.ticker,
+            actualValue,
+            context: { btcPrice, priceUsd, currentMnav }
+          })
+
+          if (result.isSuccess) {
+            triggered++
+          } else if (result.error && !result.error.includes("cooldown")) {
+            errors.push(`${company.ticker}: ${result.error}`)
+          }
+        }
+      } catch (alertError) {
+        const errMsg = alertError instanceof Error ? alertError.message : "Unknown error"
+        errors.push(`${company?.ticker || alert.id}: ${errMsg}`)
+      }
+    }
+
+    return { checked, triggered, errors }
+  } catch (error) {
+    console.error("Error checking alerts:", error)
+    errors.push(error instanceof Error ? error.message : "Unknown error")
+    return { checked, triggered, errors }
+  }
+}
