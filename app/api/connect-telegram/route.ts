@@ -49,7 +49,7 @@ You'll receive alerts for:
 • mNAV changes
 • BTC holdings updates
 
-<i>Manage alerts at 210k-terminal.vercel.app/dashboard/alerts</i>`,
+<i>210k Terminal</i>`,
           parse_mode: "HTML"
         })
       }
