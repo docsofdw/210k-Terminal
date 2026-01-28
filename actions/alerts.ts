@@ -164,6 +164,12 @@ export async function deleteAlert(
       return { isSuccess: false, error: "Alert not found" }
     }
 
+    // Delete related alert history first (foreign key constraint)
+    await db
+      .delete(alertHistory)
+      .where(eq(alertHistory.alertId, id))
+
+    // Then delete the alert
     await db
       .delete(alerts)
       .where(and(eq(alerts.id, id), eq(alerts.userId, user.userId)))
