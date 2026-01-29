@@ -1,10 +1,10 @@
 "use client"
 
 import {
+  Activity,
   BarChart3,
   Bell,
   Building2,
-  History,
   Home,
   LayoutDashboard,
   Settings2,
@@ -88,8 +88,8 @@ export function AppSidebar({
             url: "/dashboard/fund-performance"
           },
           {
-            title: "History",
-            url: "/dashboard/history"
+            title: "On-Chain Metrics",
+            url: "/dashboard/on-chain"
           }
         ]
       },

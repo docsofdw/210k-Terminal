@@ -134,6 +134,33 @@ https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd
 
 ---
 
+## Bitcoin Magazine Pro API
+
+**Purpose:** On-chain metrics and market cycle indicators
+
+**API Base:** `https://api.bitcoinmagazinepro.com/metrics`
+
+**Authentication:** Bearer token via `Authorization` header
+
+**Rate Limits:** 500 requests/day
+
+**Refresh Frequency:** Every 1 hour (Next.js ISR cache)
+
+**Metrics Used:**
+| Metric | Endpoint | Update Frequency |
+|--------|----------|------------------|
+| MVRV Z-Score | `mvrv-zscore` | Daily |
+| NUPL | `nupl` | Daily |
+| Fear & Greed | `fear-and-greed` | Daily |
+| Funding Rates | `fr-average` | Daily (hourly available) |
+| 200 Week MA | `200wma-heatmap` | Daily (hourly available) |
+| Pi Cycle Top | `pi-cycle-top` | Daily (hourly available) |
+| Volatility | `bitcoin-volatility` | Daily |
+
+**Documentation:** See [ON_CHAIN_METRICS.md](./ON_CHAIN_METRICS.md) for detailed setup and interpretation guide.
+
+---
+
 ## BitcoinTreasuries.net
 
 **Purpose:** Reference data for BTC holdings verification
@@ -200,6 +227,9 @@ TELEGRAM_CHAT_ID_NAMCIOS=    # Namcios chat ID
 
 # Slack
 SLACK_WEBHOOK_URL=           # Incoming webhook URL
+
+# Bitcoin Magazine Pro
+BITCOIN_MAGAZINE_PRO_API_KEY= # On-chain metrics API
 ```
 
 ---
@@ -212,6 +242,7 @@ SLACK_WEBHOOK_URL=           # Incoming webhook URL
 | Finnhub | 60/min (free) | Optional, US stocks only |
 | CoinGecko | 10-50/min | 1/min |
 | FX API | 1,500/month | 30/month (1/day) |
+| Bitcoin Magazine Pro | 500/day | ~168/day max (7 metrics × 24 hours) |
 | Claude | Per pricing | As needed for extractions |
 | Telegram | 30 msgs/sec | Low volume |
 | Slack | 1 msg/sec | Low volume |
