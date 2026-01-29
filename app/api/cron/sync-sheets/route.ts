@@ -11,6 +11,18 @@ export const maxDuration = 60
 const SPREADSHEET_ID = "1_whntepzncCFsn-K1oyL5Epqh5D6mauAOnb_Zs7svkk"
 const DASHBOARD_SHEET = "Dashboard"
 
+// Critical fields that should have data for a valid sync
+const CRITICAL_FIELDS = [
+  "price",
+  "marketCapUsd",
+  "dilutedMNav",
+  "enterpriseValueUsd",
+  "btcNavUsd"
+] as const
+
+// Threshold for anomaly detection (if more than 30% of critical fields are missing, warn)
+const ANOMALY_THRESHOLD = 0.3
+
 function getGoogleAuth() {
   const credentials = process.env.GOOGLE_SERVICE_ACCOUNT_KEY
   if (!credentials) {
@@ -42,6 +54,32 @@ function parseString(val: string | undefined | null): string | null {
   if (val === undefined || val === null) return null
   const str = val.toString().trim()
   return str === "" || str === "N/A" ? null : str
+}
+
+// Helper to remove null/undefined values from an object (preserves existing DB values)
+function filterNullValues<T extends Record<string, unknown>>(obj: T): Partial<T> {
+  const filtered: Partial<T> = {}
+  for (const [key, value] of Object.entries(obj)) {
+    if (value !== null && value !== undefined) {
+      filtered[key as keyof T] = value as T[keyof T]
+    }
+  }
+  return filtered
+}
+
+// Check if a company row has critical data issues
+function checkDataQuality(data: Record<string, unknown>): {
+  missingCritical: string[]
+  qualityScore: number
+} {
+  const missingCritical: string[] = []
+  for (const field of CRITICAL_FIELDS) {
+    if (data[field] === null || data[field] === undefined) {
+      missingCritical.push(field)
+    }
+  }
+  const qualityScore = 1 - missingCritical.length / CRITICAL_FIELDS.length
+  return { missingCritical, qualityScore }
 }
 
 export async function GET(request: NextRequest) {
@@ -125,6 +163,9 @@ export async function GET(request: NextRequest) {
     let updated = 0
     let inserted = 0
     let skipped = 0
+    let lowQualityRows = 0
+    let totalQualityScore = 0
+    const warnings: string[] = []
 
     // Process each data row (skip header)
     for (let i = 1; i < rows.length; i++) {
@@ -181,6 +222,18 @@ export async function GET(request: NextRequest) {
         updatedAt: new Date()
       }
 
+      // Check data quality for this row
+      const { missingCritical, qualityScore } = checkDataQuality(updateData)
+      totalQualityScore += qualityScore
+
+      if (qualityScore < 1 - ANOMALY_THRESHOLD) {
+        lowQualityRows++
+        // Log warning for major companies missing critical data
+        if (["MSTR", "MARA", "COIN", "RIOT"].includes(ticker)) {
+          warnings.push(`${ticker} missing critical fields: ${missingCritical.join(", ")}`)
+        }
+      }
+
       // Try to update existing company by ticker
       const [existing] = await db
         .select()
@@ -189,13 +242,22 @@ export async function GET(request: NextRequest) {
         .limit(1)
 
       if (existing) {
+        // PROTECTION: Only update fields that have valid values
+        // This prevents null values from overwriting good existing data
+        const safeUpdateData = filterNullValues(updateData)
+
+        // Always update these metadata fields
+        safeUpdateData.lastSyncedAt = new Date()
+        safeUpdateData.syncSource = "Google Sheets cron sync"
+        safeUpdateData.updatedAt = new Date()
+
         await db
           .update(companies)
-          .set(updateData)
+          .set(safeUpdateData)
           .where(eq(companies.id, existing.id))
         updated++
       } else {
-        // Insert new company
+        // Insert new company (include all data, even nulls for new records)
         await db.insert(companies).values({
           ...updateData,
           ticker,
@@ -205,13 +267,31 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Calculate overall sync quality
+    const processedRows = rows.length - 1 - skipped
+    const avgQualityScore = processedRows > 0 ? totalQualityScore / processedRows : 0
+    const syncQuality = avgQualityScore >= 0.8 ? "healthy" : avgQualityScore >= 0.5 ? "degraded" : "poor"
+
+    // Log warnings if sync quality is concerning
+    if (syncQuality !== "healthy") {
+      console.warn(`[SYNC WARNING] Quality: ${syncQuality}, Score: ${(avgQualityScore * 100).toFixed(1)}%, Low quality rows: ${lowQualityRows}`)
+      warnings.forEach(w => console.warn(`[SYNC WARNING] ${w}`))
+    }
+
     return NextResponse.json({
       success: true,
       updated,
       inserted,
       skipped,
       total: rows.length - 1,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      // Sync health metrics
+      syncHealth: {
+        quality: syncQuality,
+        qualityScore: Math.round(avgQualityScore * 100),
+        lowQualityRows,
+        warnings: warnings.length > 0 ? warnings : undefined
+      }
     })
   } catch (error) {
     console.error("Google Sheets sync cron error:", error)

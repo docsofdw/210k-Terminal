@@ -6,7 +6,8 @@ import {
   type InsertCompany,
   type SelectCompany
 } from "@/db/schema/companies"
-import { eq, desc, and, isNotNull } from "drizzle-orm"
+import { fundPositions } from "@/db/schema/fund-positions"
+import { eq, desc, and, isNotNull, inArray } from "drizzle-orm"
 import { logAudit } from "./audit"
 
 export async function getAllCompanies(): Promise<SelectCompany[]> {
@@ -203,4 +204,66 @@ export async function getLastSyncTimestamp(): Promise<Date | null> {
     .limit(1)
 
   return result?.lastSyncedAt || null
+}
+
+// Check data quality for sync health indicator
+export async function getSyncHealthStatus(): Promise<{
+  quality: "healthy" | "degraded" | "poor"
+  companiesWithMissingData: number
+  totalCompanies: number
+  lastSynced: Date | null
+}> {
+  const allCompanies = await db.query.companies.findMany({
+    where: eq(companies.isTracked, true)
+  })
+
+  // Critical fields that should have data
+  const criticalFields = ["price", "marketCapUsd", "dilutedMNav", "enterpriseValueUsd", "btcNavUsd"] as const
+
+  let companiesWithMissingData = 0
+
+  for (const company of allCompanies) {
+    const missingFields = criticalFields.filter(field => {
+      const value = company[field]
+      return value === null || value === undefined || value === ""
+    })
+
+    // If more than 2 critical fields are missing, count as incomplete
+    if (missingFields.length > 2) {
+      companiesWithMissingData++
+    }
+  }
+
+  const missingRatio = allCompanies.length > 0 ? companiesWithMissingData / allCompanies.length : 0
+
+  let quality: "healthy" | "degraded" | "poor" = "healthy"
+  if (missingRatio > 0.3) {
+    quality = "poor"
+  } else if (missingRatio > 0.1) {
+    quality = "degraded"
+  }
+
+  const lastSynced = await getLastSyncTimestamp()
+
+  return {
+    quality,
+    companiesWithMissingData,
+    totalCompanies: allCompanies.length,
+    lastSynced
+  }
+}
+
+// Get company IDs that are in the 210k portfolio (fund positions)
+export async function getPortfolioCompanyIds(): Promise<string[]> {
+  const positions = await db
+    .select({ companyId: fundPositions.companyId })
+    .from(fundPositions)
+    .where(isNotNull(fundPositions.companyId))
+
+  // Filter out nulls and return unique company IDs
+  const companyIds = positions
+    .map(p => p.companyId)
+    .filter((id): id is string => id !== null)
+
+  return [...new Set(companyIds)]
 }

@@ -23,7 +23,7 @@ import {
   TooltipTrigger
 } from "@/components/ui/tooltip"
 import { SelectCompany } from "@/db/schema/companies"
-import { ArrowDown, ArrowUp, ArrowUpDown, Search, X, Info } from "lucide-react"
+import { ArrowDown, ArrowUp, ArrowUpDown, Search, X, Info, Briefcase } from "lucide-react"
 import { useState, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 
@@ -63,6 +63,7 @@ const COLUMN_FORMULAS: Record<string, { label: string; formula: string; descript
 
 interface CompsTableProps {
   companies: SelectCompany[]
+  portfolioCompanyIds?: string[]
 }
 
 type SortField =
@@ -230,12 +231,22 @@ function SortableHeader({
   )
 }
 
-export function CompsTable({ companies }: CompsTableProps) {
+export function CompsTable({ companies, portfolioCompanyIds = [] }: CompsTableProps) {
   const [sortField, setSortField] = useState<SortField>("btcHoldings")
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc")
   const [searchQuery, setSearchQuery] = useState("")
   const [categoryFilter, setCategoryFilter] = useState<string>("all")
   const [regionFilter, setRegionFilter] = useState<string>("all")
+  const [portfolioFilter, setPortfolioFilter] = useState<string>("all")
+
+  // Create a Set for O(1) lookup of portfolio companies
+  const portfolioCompanySet = useMemo(
+    () => new Set(portfolioCompanyIds),
+    [portfolioCompanyIds]
+  )
+
+  // Check if a company is in the portfolio
+  const isInPortfolio = (companyId: string) => portfolioCompanySet.has(companyId)
 
   // Extract unique categories and regions for filter options
   const filterOptions = useMemo(() => {
@@ -275,9 +286,14 @@ export function CompsTable({ companies }: CompsTableProps) {
         return false
       }
 
+      // Portfolio filter
+      if (portfolioFilter === "portfolio" && !isInPortfolio(company.id)) {
+        return false
+      }
+
       return true
     })
-  }, [companies, searchQuery, categoryFilter, regionFilter])
+  }, [companies, searchQuery, categoryFilter, regionFilter, portfolioFilter, isInPortfolio])
 
   const sortedCompanies = useMemo(() => {
     return [...filteredCompanies].sort((a, b) => {
@@ -336,13 +352,17 @@ export function CompsTable({ companies }: CompsTableProps) {
     })
   }, [filteredCompanies, sortField, sortDirection])
 
-  const hasActiveFilters = searchQuery || categoryFilter !== "all" || regionFilter !== "all"
+  const hasActiveFilters = searchQuery || categoryFilter !== "all" || regionFilter !== "all" || portfolioFilter !== "all"
 
   const clearFilters = () => {
     setSearchQuery("")
     setCategoryFilter("all")
     setRegionFilter("all")
+    setPortfolioFilter("all")
   }
+
+  // Count portfolio companies for the filter label
+  const portfolioCount = companies.filter(c => isInPortfolio(c.id)).length
 
   return (
     <div className="space-y-4">
@@ -385,6 +405,23 @@ export function CompsTable({ companies }: CompsTableProps) {
             ))}
           </SelectContent>
         </Select>
+
+        {portfolioCompanyIds.length > 0 && (
+          <Select value={portfolioFilter} onValueChange={setPortfolioFilter}>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="Portfolio" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Companies</SelectItem>
+              <SelectItem value="portfolio">
+                <span className="flex items-center gap-1.5">
+                  <Briefcase className="h-3 w-3 text-terminal-orange" />
+                  210k Portfolio ({portfolioCount})
+                </span>
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        )}
 
         {hasActiveFilters && (
           <Button
@@ -523,9 +560,21 @@ export function CompsTable({ companies }: CompsTableProps) {
           <TableBody>
             {sortedCompanies.map(company => (
               <TableRow key={company.id} className="h-7">
-                <TableCell className="py-1 px-2 max-w-[130px]">
-                  <div className="truncate font-medium" title={company.name}>
-                    {company.name}
+                <TableCell className="py-1 px-2 max-w-[150px]">
+                  <div className="flex items-center gap-1.5">
+                    {isInPortfolio(company.id) && (
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <Briefcase className="h-3 w-3 text-terminal-orange flex-shrink-0" />
+                        </TooltipTrigger>
+                        <TooltipContent side="right" className="text-xs">
+                          In 210k Portfolio
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                    <span className="truncate font-medium" title={company.name}>
+                      {company.name}
+                    </span>
                   </div>
                 </TableCell>
                 <TableCell className="py-1 px-2 text-muted-foreground">

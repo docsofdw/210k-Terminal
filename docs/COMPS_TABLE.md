@@ -10,8 +10,10 @@ The Comps Table (`/dashboard/comps`) is the primary view for analyzing Bitcoin t
 - ~100 Bitcoin treasury companies worldwide
 - Pre-calculated mNAV, Enterprise Value, and fair value metrics
 - Sortable columns with search and filter capabilities
-- Category and Region filters
-- Automatic sync every 4 hours
+- Category, Region, and Portfolio filters
+- **Portfolio Indicator:** Shows which companies are in the 210k Capital portfolio
+- **Sync Health Indicator:** Visual indicator of data quality and sync status
+- Automatic sync every 4 hours with data protection
 
 ---
 
@@ -184,6 +186,69 @@ npx tsx db/seed/sync-from-sheets.ts
 
 ---
 
+## Data Protection & Sync Health
+
+### Null Value Protection
+
+The sync process includes protection against data loss from temporary Google Sheets issues:
+
+**Problem Solved:**
+If the Google Sheet temporarily has missing data (API timeout, formula errors, etc.), the sync would previously write `null` values to the database, overwriting good existing data.
+
+**Solution:**
+When updating existing companies, only fields with valid (non-null) values are updated. Existing good data is preserved if the Google Sheet temporarily has missing values.
+
+```typescript
+// Only update fields that have valid values
+const safeUpdateData = filterNullValues(updateData)
+```
+
+### Sync Health Indicator
+
+A visual badge in the page header shows the current data quality status:
+
+| Status | Badge Color | Meaning |
+|--------|-------------|---------|
+| Healthy | Green | All companies have complete data |
+| Degraded | Yellow | 10-30% of companies missing critical fields |
+| Issues | Red | >30% of companies missing critical fields |
+
+**Critical Fields Monitored:**
+- `price`
+- `marketCapUsd`
+- `dilutedMNav`
+- `enterpriseValueUsd`
+- `btcNavUsd`
+
+**Hover Tooltip Shows:**
+- Overall sync quality status
+- Number of companies with incomplete data
+- Last sync timestamp
+
+### Anomaly Detection
+
+During sync, the system:
+1. Tracks data quality score for each company
+2. Logs warnings when major companies (MSTR, MARA, COIN, RIOT) are missing critical fields
+3. Returns sync health metrics in the API response
+
+**API Response Includes:**
+```json
+{
+  "success": true,
+  "updated": 100,
+  "inserted": 0,
+  "syncHealth": {
+    "quality": "healthy",
+    "qualityScore": 95,
+    "lowQualityRows": 5,
+    "warnings": ["MARA missing critical fields: price, marketCapUsd"]
+  }
+}
+```
+
+---
+
 ## UI Components
 
 ### Comps Page (`/dashboard/comps`)
@@ -227,6 +292,13 @@ npx tsx db/seed/sync-from-sheets.ts
 - Search: Filter by company name or ticker
 - Category: Filter by company category (Treasury Company, Miner, Other)
 - Region: Filter by geographic region (North America, Asia, Europe, etc.)
+- **Portfolio:** Filter to show only companies in the 210k Capital portfolio
+
+**Portfolio Indicator:**
+- Companies in the 210k portfolio display an orange briefcase icon next to their name
+- Hover over the icon to see "In 210k Portfolio" tooltip
+- Use the "210k Portfolio" filter dropdown to view only portfolio companies
+- Portfolio data is sourced from the `fund_positions` table (synced from Google Sheets)
 
 **Color Coding:**
 
@@ -296,19 +368,24 @@ app/
 ├── (authenticated)/
 │   └── dashboard/
 │       └── comps/
-│           ├── page.tsx                    # Main comps page
+│           ├── page.tsx                    # Main comps page (includes sync health)
 │           └── _components/
-│               ├── comps-table.tsx         # Sortable/filterable table
+│               ├── comps-table.tsx         # Sortable/filterable table (includes portfolio indicator)
 │               └── btc-price-header.tsx    # BTC price display
 
 actions/
 └── companies.ts                            # Server actions for companies
+    # Key functions:
+    # - getAllCompanies()           Get all tracked companies
+    # - getSyncHealthStatus()       Check data quality for health indicator
+    # - getPortfolioCompanyIds()    Get company IDs in 210k portfolio
 
 db/
 ├── schema/
-│   └── companies.ts                        # Drizzle schema definition
+│   ├── companies.ts                        # Drizzle schema definition
+│   └── fund-positions.ts                   # Portfolio positions schema
 └── seed/
-    └── sync-from-sheets.ts                 # Manual sync script
+    └── sync-from-sheets.ts                 # Manual sync script (with null protection)
 
 lib/
 └── api/
@@ -316,7 +393,7 @@ lib/
 
 app/api/cron/
 └── sync-sheets/
-    └── route.ts                            # Cron job endpoint
+    └── route.ts                            # Cron job endpoint (with data protection)
 ```
 
 ---

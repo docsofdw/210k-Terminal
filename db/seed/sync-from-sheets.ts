@@ -2,7 +2,7 @@ import { config } from "dotenv"
 import { drizzle } from "drizzle-orm/postgres-js"
 import postgres from "postgres"
 import { companies } from "../schema/companies"
-import { eq, sql } from "drizzle-orm"
+import { eq } from "drizzle-orm"
 import { google } from "googleapis"
 
 config({ path: ".env.local" })
@@ -18,6 +18,20 @@ const db = drizzle(client)
 // New BTCTCs Master Sheet configuration
 const SPREADSHEET_ID = "1_whntepzncCFsn-K1oyL5Epqh5D6mauAOnb_Zs7svkk"
 const DASHBOARD_SHEET = "Dashboard"
+
+// Critical fields that should have data for a valid sync
+const CRITICAL_FIELDS = ["price", "marketCapUsd", "dilutedMNav", "enterpriseValueUsd", "btcNavUsd"] as const
+
+// Helper to remove null/undefined values from an object (preserves existing DB values)
+function filterNullValues<T extends Record<string, unknown>>(obj: T): Partial<T> {
+  const filtered: Partial<T> = {}
+  for (const [key, value] of Object.entries(obj)) {
+    if (value !== null && value !== undefined) {
+      filtered[key as keyof T] = value as T[keyof T]
+    }
+  }
+  return filtered
+}
 
 function getGoogleAuth() {
   const credentials = process.env.GOOGLE_SERVICE_ACCOUNT_KEY
@@ -274,15 +288,23 @@ async function syncFromSheets() {
       }
 
       if (existing) {
-        // Update existing company
+        // PROTECTION: Only update fields that have valid values
+        // This prevents null values from overwriting good existing data
+        const safeCompanyData = filterNullValues(companyData)
+
+        // Always update these metadata fields
+        safeCompanyData.lastSyncedAt = new Date()
+        safeCompanyData.syncSource = "Google Sheets sync"
+        safeCompanyData.updatedAt = new Date()
+
         await db
           .update(companies)
-          .set(companyData)
+          .set(safeCompanyData)
           .where(eq(companies.id, existing.id))
         updated++
         console.log(`🔄 Updated: ${data.ticker.padEnd(12)} | ${data.name.slice(0, 30).padEnd(30)} | BTC: ${data.btcHoldings?.padStart(12) ?? "N/A".padStart(12)}`)
       } else {
-        // Insert new company
+        // Insert new company (include all data for new records)
         await db.insert(companies).values({
           ...companyData,
           ticker: data.ticker
