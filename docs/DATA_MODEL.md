@@ -15,6 +15,8 @@ btc_prices (standalone)
 fx_rates (standalone)
 daily_snapshots (standalone)
 audit_log (standalone)
+fund_performance_snapshots (standalone, synced from Google Sheets)
+fund_statistics (standalone, synced from Google Sheets)
 ```
 
 ## Core Tables
@@ -217,3 +219,52 @@ AI-extracted data pending review.
 | reviewed_by | uuid | FK users | |
 | reviewed_at | timestamp | | |
 | created_at | timestamp | default now() | |
+
+---
+
+### fund_performance_snapshots
+
+Monthly fund performance data synced from Google Sheets.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | uuid | PK | |
+| snapshot_date | timestamp | NOT NULL, indexed | End-of-month date |
+| fund_aum_usd | decimal(20,2) | | Fund AUM in USD |
+| fund_aum_btc | decimal(20,8) | | Fund AUM in BTC terms |
+| btc_price_at_snapshot | decimal(20,2) | | BTC price at snapshot |
+| net_return_mtd | decimal(10,6) | | Month-to-date net return (decimal) |
+| net_return_ytd | decimal(10,6) | | Year-to-date net return |
+| net_return_itd | decimal(10,6) | | Inception-to-date net return |
+| btc_return_mtd | decimal(10,6) | | BTC MTD return for comparison |
+| btc_return_ytd | decimal(10,6) | | BTC YTD return |
+| btc_return_itd | decimal(10,6) | | BTC ITD return |
+| source_sheet | text | | Source sheet name |
+| raw_data | jsonb | | Raw row data for debugging |
+| synced_at | timestamp | NOT NULL | Last sync time |
+| created_at | timestamp | default now() | |
+
+**Note:** Synced via `/api/cron/sync-fund-performance` from "Net Returns" sheet. See [FUND_PERFORMANCE.md](./FUND_PERFORMANCE.md) for details.
+
+---
+
+### fund_statistics
+
+Fund allocation and risk metrics synced from Google Sheets.
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | uuid | PK | |
+| snapshot_date | timestamp | NOT NULL, indexed | Date of statistics |
+| btc_allocation | decimal(10,4) | | % allocated to BTC |
+| equities_allocation | decimal(10,4) | | % in BTC equities |
+| cash_allocation | decimal(10,4) | | % in cash |
+| other_allocation | decimal(10,4) | | % in other assets |
+| volatility | decimal(10,6) | | Fund volatility |
+| sharpe_ratio | decimal(10,4) | | Sharpe ratio |
+| max_drawdown | decimal(10,6) | | Maximum drawdown |
+| btc_correlation | decimal(10,4) | | Correlation with BTC |
+| raw_data | jsonb | | Raw row data |
+| synced_at | timestamp | NOT NULL | Last sync time |
+
+**Note:** Synced via `/api/cron/sync-fund-performance` from "Portfolio Statistics" sheet. See [FUND_PERFORMANCE.md](./FUND_PERFORMANCE.md) for details.

@@ -154,7 +154,7 @@ export function FundPositionsTable({
               <TableHead>Custodian</TableHead>
               <TableHead>Position</TableHead>
               <TableHead className="text-right">Quantity</TableHead>
-              <TableHead className="text-right">Price</TableHead>
+              <TableHead className="text-right">Price (USD)</TableHead>
               <TableHead className="text-right">Value (USD)</TableHead>
               <TableHead className="text-right">Value (BTC)</TableHead>
               <TableHead className="text-right">Weight</TableHead>

@@ -84,6 +84,10 @@ export function AppSidebar({
             url: "/dashboard/charts"
           },
           {
+            title: "Fund Performance",
+            url: "/dashboard/fund-performance"
+          },
+          {
             title: "History",
             url: "/dashboard/history"
           }

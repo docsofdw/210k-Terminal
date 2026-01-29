@@ -27,6 +27,14 @@
     {
       "path": "/api/cron/sync-portfolio",
       "schedule": "0 */4 * * *"
+    },
+    {
+      "path": "/api/cron/sync-fund-performance",
+      "schedule": "0 2 1,15 * *"
+    },
+    {
+      "path": "/api/cron/sync-live-fund-stats",
+      "schedule": "0 */4 * * *"
     }
   ]
 }

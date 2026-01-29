@@ -11,6 +11,10 @@ import { companies } from "./schema/companies"
 import { customers } from "./schema/customers"
 import { dailySnapshots, marketSnapshots } from "./schema/daily-snapshots"
 import { fxRates } from "./schema/fx-rates"
+import {
+  fundPerformanceSnapshots,
+  fundStatistics
+} from "./schema/fund-performance"
 import { fundPositions } from "./schema/fund-positions"
 import { holdingsSnapshots } from "./schema/holdings-snapshots"
 import { portfolioPositions } from "./schema/portfolio-positions"
@@ -43,6 +47,10 @@ const dbSchema = {
 
   // Fund positions (from Google Sheet)
   fundPositions,
+
+  // Fund performance analytics
+  fundPerformanceSnapshots,
+  fundStatistics,
 
   // Alerts
   alerts,
