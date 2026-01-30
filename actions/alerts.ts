@@ -473,20 +473,14 @@ export async function triggerOnchainAlert({
       formattedThreshold = (threshold * 100).toFixed(4) + "%"
     }
 
-    telegramMessage = `${directionEmoji} <b>ON-CHAIN ALERT</b>
+    telegramMessage = `${directionEmoji} <b>${metricName}</b>
 
-<b>${metricName}</b>
-
-Value crossed ${direction} your threshold
-
-━━━━━━━━━━━━━━━
-📊 Current:    <b>${formattedValue}</b>
-🎯 Threshold:  ${formattedThreshold}
-━━━━━━━━━━━━━━━
+Crossed ${direction} <b>${formattedThreshold}</b>
+Current: <b>${formattedValue}</b>
 
 <i>210k Terminal</i>`
 
-    slackMessage = `${directionEmoji} *ON-CHAIN ALERT*\n\n*${metricName}*\n\nValue crossed ${direction} your threshold\n\n• Current: *${formattedValue}*\n• Threshold: ${formattedThreshold}`
+    slackMessage = `${directionEmoji} *${metricName}*\nCrossed ${direction} *${formattedThreshold}* → Current: *${formattedValue}*`
 
     // Send notification
     let notificationSent = false
@@ -598,26 +592,19 @@ export async function sendOnchainDigest(
                       metrics.nupl >= 0.25 ? "Optimism" :
                       metrics.nupl >= 0 ? "Hope" : "Capitulation"
 
-    const telegramMessage = `📊 <b>DAILY ON-CHAIN DIGEST</b>
+    const telegramMessage = `📊 <b>On-Chain Brief</b> • ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })}
 
-<b>BTC Price:</b> $${metrics.btcPrice.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+₿ <b>$${metrics.btcPrice.toLocaleString(undefined, { maximumFractionDigits: 0 })}</b>
 
-━━━━━━━━━━━━━━━
-<b>Sentiment</b>
-Fear & Greed:  <b>${metrics.fearGreed}</b> (${fgLabel})
-Funding Rate:  ${(metrics.fundingRate * 100).toFixed(4)}%
+😱 F&G     <b>${metrics.fearGreed}</b>  ${fgLabel}
+📈 MVRV   <b>${metrics.mvrvZScore.toFixed(2)}</b>  ${mvrvLabel}
+💰 NUPL   <b>${(metrics.nupl * 100).toFixed(0)}%</b>  ${nuplLabel}
+⚡ FR       ${(metrics.fundingRate * 100).toFixed(3)}%
+📏 200W   ${metrics.premium200WMA >= 0 ? "+" : ""}${metrics.premium200WMA.toFixed(0)}%
 
-<b>Valuation</b>
-MVRV Z-Score:  <b>${metrics.mvrvZScore.toFixed(2)}</b> (${mvrvLabel})
-NUPL:          <b>${(metrics.nupl * 100).toFixed(1)}%</b> (${nuplLabel})
+<i>210k Terminal</i>`
 
-<b>Technical</b>
-200 WMA Premium: ${metrics.premium200WMA >= 0 ? "+" : ""}${metrics.premium200WMA.toFixed(0)}%
-━━━━━━━━━━━━━━━
-
-<i>210k Terminal • ${new Date().toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}</i>`
-
-    const slackMessage = `📊 *DAILY ON-CHAIN DIGEST*\n\n*BTC Price:* $${metrics.btcPrice.toLocaleString(undefined, { maximumFractionDigits: 0 })}\n\n*Sentiment*\n• Fear & Greed: *${metrics.fearGreed}* (${fgLabel})\n• Funding Rate: ${(metrics.fundingRate * 100).toFixed(4)}%\n\n*Valuation*\n• MVRV Z-Score: *${metrics.mvrvZScore.toFixed(2)}* (${mvrvLabel})\n• NUPL: *${(metrics.nupl * 100).toFixed(1)}%* (${nuplLabel})\n\n*Technical*\n• 200 WMA Premium: ${metrics.premium200WMA >= 0 ? "+" : ""}${metrics.premium200WMA.toFixed(0)}%`
+    const slackMessage = `📊 *On-Chain Brief*\n\n*BTC $${metrics.btcPrice.toLocaleString(undefined, { maximumFractionDigits: 0 })}*\n\nF&G *${metrics.fearGreed}* ${fgLabel} • MVRV *${metrics.mvrvZScore.toFixed(2)}* ${mvrvLabel}\nNUPL *${(metrics.nupl * 100).toFixed(0)}%* ${nuplLabel} • FR ${(metrics.fundingRate * 100).toFixed(3)}% • 200W ${metrics.premium200WMA >= 0 ? "+" : ""}${metrics.premium200WMA.toFixed(0)}%`
 
     // Send notification
     let notificationSent = false

@@ -123,16 +123,10 @@ mNAV: X.XX
 ### On-Chain Alert (Telegram)
 
 ```
-⬆️ ON-CHAIN ALERT
+⬆️ Fear & Greed Index
 
-Fear & Greed Index
-
-Value crossed above your threshold
-
-━━━━━━━━━━━━━━━
-📊 Current:    75
-🎯 Threshold:  70
-━━━━━━━━━━━━━━━
+Crossed above 70
+Current: 75
 
 210k Terminal
 ```
@@ -142,24 +136,17 @@ Value crossed above your threshold
 ### Daily On-Chain Digest (Telegram)
 
 ```
-📊 DAILY ON-CHAIN DIGEST
+📊 On-Chain Brief • Jan 29
 
-BTC Price: $98,543
+₿ $98,543
 
-━━━━━━━━━━━━━━━
-Sentiment
-Fear & Greed:  72 (Greed)
-Funding Rate:  0.0134%
+😱 F&G     72  Greed
+📈 MVRV   2.45  Fair
+💰 NUPL   48%  Optimism
+⚡ FR       0.013%
+📏 200W   +156%
 
-Valuation
-MVRV Z-Score:  2.45 (Fair)
-NUPL:          48.3% (Optimism)
-
-Technical
-200 WMA Premium: +156%
-━━━━━━━━━━━━━━━
-
-210k Terminal • Wednesday, Jan 29
+210k Terminal
 ```
 
 ---
