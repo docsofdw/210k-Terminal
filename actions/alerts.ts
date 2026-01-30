@@ -450,14 +450,23 @@ export async function triggerOnchainAlert({
       formattedThreshold = (threshold * 100).toFixed(4) + "%"
     }
 
-    telegramMessage = `${directionEmoji} <b>${metricName}</b>
+    // Add full metric descriptions for context
+    const metricDescription: Record<string, string> = {
+      "MVRV Z-Score": "Market Value to Realized Value",
+      "NUPL": "Net Unrealized Profit/Loss",
+      "Funding Rate": "Perpetual Futures Funding",
+      "Fear & Greed Index": "Market Sentiment Index"
+    }
+    const description = metricDescription[metricName] || ""
+
+    telegramMessage = `${directionEmoji} <b>${metricName}</b>${description ? `\n<i>${description}</i>` : ""}
 
 Crossed ${direction} <b>${formattedThreshold}</b>
 Current: <b>${formattedValue}</b>
 
 <i>210k Terminal</i>`
 
-    slackMessage = `${directionEmoji} *${metricName}*\nCrossed ${direction} *${formattedThreshold}* → Current: *${formattedValue}*`
+    slackMessage = `${directionEmoji} *${metricName}*${description ? ` (${description})` : ""}\nCrossed ${direction} *${formattedThreshold}* → Current: *${formattedValue}*`
 
     // Send notification
     let notificationSent = false

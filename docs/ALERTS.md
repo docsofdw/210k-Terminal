@@ -127,10 +127,41 @@ Threshold: 5.00%
 ### On-Chain Alert (Telegram)
 
 ```
-⬆️ Fear & Greed Index
+⬆️ MVRV Z-Score
+Market Value to Realized Value
 
-Crossed above 70
-Current: 75
+Crossed above 1.00
+Current: 1.12 (Fair)
+
+210k Terminal
+```
+
+```
+⬆️ NUPL
+Net Unrealized Profit/Loss
+
+Crossed above 25.0%
+Current: 37.2% (Optimism)
+
+210k Terminal
+```
+
+```
+⬆️ Funding Rate
+Perpetual Futures Funding
+
+Crossed above 0.0050%
+Current: 0.0061% (Neutral)
+
+210k Terminal
+```
+
+```
+⬆️ Fear & Greed Index
+Market Sentiment Index
+
+Crossed above 20
+Current: 26 (Fear)
 
 210k Terminal
 ```
