@@ -66,20 +66,58 @@ Forms for administrators to manually enter or update company data.
 
 ---
 
-### 4. Historical Charts
+### 4. Value Screener
 
-Time-series visualizations for key metrics.
+Relative value screening tool to identify treasury companies trading at attractive valuations.
 
-**Required Charts:**
-- mNAV over time (per company and comparison view)
-- BTC holdings accumulation (per company)
-- Stock price vs BTC price correlation
-- BTC Yield progression
+**Location:** `/dashboard/charts` (sidebar: Analytics → Value Screener)
 
-**Implementation:**
-- Recharts or TradingView lightweight charts
-- Date range selector
-- Export to PNG/CSV
+**Tabs:**
+- **Value Screener** (default) - Screening table for all companies
+- **Company Analysis** - Per-company charts (appears when a company is selected)
+
+**Metrics Displayed:**
+
+| Column | Description |
+|--------|-------------|
+| Signal | Color-coded badge (Attractive/Fair/Expensive) |
+| Rank | Position by current mNAV (1 = lowest/cheapest) |
+| Company | Ticker + company name (clickable to drill down) |
+| mNAV | Current mNAV multiple |
+| vs 90d Avg | Deviation from 90-day average mNAV (%) |
+| 7d Δ | mNAV change over last 7 days |
+| Trend | 90-day sparkline with average reference line |
+| BTC | Current BTC holdings |
+| Mkt Cap | Market capitalization (USD) |
+
+**Signal Logic:**
+- **Attractive (Green):** mNAV < 1.0, OR deviation < -10%, OR (rank ≤ 3 AND deviation < 0)
+- **Expensive (Red):** mNAV > 2.0, OR deviation > +15%
+- **Fair (Yellow):** Everything else
+
+**Data Filtering:**
+- Companies with negative or null mNAV values are excluded from the screener
+- This filters out companies with data quality issues (e.g., negative EV or negative BTC NAV)
+
+**Sorting:**
+- All columns are sortable by clicking headers
+- Default sort: by Rank (ascending)
+
+**Data Source:**
+- Aggregates data from `daily_snapshots` table (last 90 days)
+- Server action: `getRelativeValueScreenerData()` in `/actions/snapshots.ts`
+
+#### Company Analysis Tab
+
+Per-company historical charts (appears when a company is selected from the dropdown).
+
+**Charts:**
+- mNAV History - Historical mNAV over the selected time range
+- Stock Price History - Stock price in the company's trading currency
+
+**Controls:**
+- Company selector dropdown
+- Date range selector (7D, 30D, 90D, 1Y, ALL)
 
 ---
 

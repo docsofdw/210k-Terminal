@@ -80,7 +80,7 @@ export function AppSidebar({
         icon: BarChart3,
         items: [
           {
-            title: "Charts",
+            title: "Value Screener",
             url: "/dashboard/charts"
           },
           {

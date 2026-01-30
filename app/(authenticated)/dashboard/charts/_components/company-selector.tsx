@@ -8,7 +8,7 @@ import {
   SelectValue
 } from "@/components/ui/select"
 import { useRouter, useSearchParams } from "next/navigation"
-import { useCallback } from "react"
+import { useCallback, useEffect, useState } from "react"
 
 interface Company {
   id: string
@@ -24,6 +24,11 @@ interface CompanySelectorProps {
 export function CompanySelector({ companies, currentTicker }: CompanySelectorProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const handleCompanyChange = useCallback(
     (ticker: string) => {
@@ -37,6 +42,15 @@ export function CompanySelector({ companies, currentTicker }: CompanySelectorPro
     },
     [router, searchParams]
   )
+
+  // Render a placeholder during SSR to avoid hydration mismatch with Radix IDs
+  if (!mounted) {
+    return (
+      <div className="flex h-9 w-[200px] items-center justify-between rounded-md border border-border bg-transparent px-3 py-2 text-sm">
+        <span className="text-muted-foreground">All Companies (Aggregate)</span>
+      </div>
+    )
+  }
 
   return (
     <Select value={currentTicker || "all"} onValueChange={handleCompanyChange}>

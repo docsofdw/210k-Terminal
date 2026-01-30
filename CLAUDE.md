@@ -54,7 +54,7 @@ This is a Next.js 15 treasury intelligence platform using the App Router with ro
 - `/app/(authenticated)` - Protected routes requiring Clerk auth
   - `dashboard/comps` - Treasury companies comparison table
   - `dashboard/portfolio` - Position tracking
-  - `dashboard/charts` - Historical analytics
+  - `dashboard/charts` - Value Screener and company analysis
   - `dashboard/alerts` - Price alert management
   - `dashboard/admin` - Admin-only company and user management
 - `/app/api` - API routes including cron jobs for price updates
