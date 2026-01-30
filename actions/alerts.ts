@@ -22,8 +22,9 @@ import * as slack from "@/lib/notifications/slack"
 
 /**
  * Check if it's currently 8 AM (8:00-8:59) in the specified timezone
+ * and if today is a valid delivery day
  */
-function isDeliveryTime(timezone: string | null): boolean {
+function isDeliveryTime(timezone: string | null, deliveryDays: string | null): boolean {
   const now = new Date()
 
   let tz: string
@@ -36,14 +37,33 @@ function isDeliveryTime(timezone: string | null): boolean {
       tz = "America/Chicago"
   }
 
-  const formatter = new Intl.DateTimeFormat("en-US", {
+  const hourFormatter = new Intl.DateTimeFormat("en-US", {
     timeZone: tz,
     hour: "numeric",
     hour12: false
   })
 
-  const hour = parseInt(formatter.format(now), 10)
-  return hour === 8
+  const hour = parseInt(hourFormatter.format(now), 10)
+
+  // Check if it's 8 AM
+  if (hour !== 8) {
+    return false
+  }
+
+  // Check if today is a valid delivery day
+  if (deliveryDays === "weekdays_only") {
+    const dayFormatter = new Intl.DateTimeFormat("en-US", {
+      timeZone: tz,
+      weekday: "short"
+    })
+    const dayOfWeek = dayFormatter.format(now)
+    // Skip weekends (Sat, Sun)
+    if (dayOfWeek === "Sat" || dayOfWeek === "Sun") {
+      return false
+    }
+  }
+
+  return true
 }
 
 // ============ ALERTS ============
@@ -931,9 +951,9 @@ export async function checkAllAlerts(): Promise<{
               metricName = "Funding Rate"
               break
             case "onchain_daily_digest":
-              // Daily digest - only send at 8 AM in user's timezone
-              if (!isDeliveryTime(alert.timezone)) {
-                continue // Not the right time, skip
+              // Daily digest - only send at 8 AM in user's timezone on valid days
+              if (!isDeliveryTime(alert.timezone, alert.deliveryDays)) {
+                continue // Not the right time or day, skip
               }
               const digestResult = await sendOnchainDigest(alert, {
                 fearGreed: latestFearGreed,

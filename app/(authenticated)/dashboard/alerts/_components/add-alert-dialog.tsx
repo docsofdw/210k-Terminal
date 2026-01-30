@@ -82,6 +82,7 @@ export function AddAlertDialog({ companies }: AddAlertDialogProps) {
     isRepeating: true,
     cooldownMinutes: "60",
     timezone: "america_chicago",
+    deliveryDays: "every_day",
     description: ""
   })
 
@@ -106,6 +107,7 @@ export function AddAlertDialog({ companies }: AddAlertDialogProps) {
         isRepeating: isDigestAlert ? true : formData.isRepeating,
         cooldownMinutes: isDigestAlert ? "1440" : formData.cooldownMinutes || null, // 24 hours for digest
         timezone: formData.timezone as "america_chicago" | "asia_hong_kong",
+        deliveryDays: isDigestAlert ? formData.deliveryDays as "every_day" | "weekdays_only" : null,
         description: formData.description || null
       })
 
@@ -124,6 +126,7 @@ export function AddAlertDialog({ companies }: AddAlertDialogProps) {
           isRepeating: true,
           cooldownMinutes: "60",
           timezone: "america_chicago",
+          deliveryDays: "every_day",
           description: ""
         })
         router.refresh()
@@ -305,6 +308,27 @@ export function AddAlertDialog({ companies }: AddAlertDialogProps) {
               </Select>
             </div>
           </div>
+
+          {isDigestAlert && (
+            <div className="space-y-2">
+              <Label htmlFor="deliveryDays">Delivery Days</Label>
+              <Select
+                value={formData.deliveryDays}
+                onValueChange={value => setFormData({ ...formData, deliveryDays: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="every_day">Every day (7 days)</SelectItem>
+                  <SelectItem value="weekdays_only">Weekdays only (Mon-Fri)</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-[10px] text-muted-foreground">
+                Choose whether to receive the digest every day or only on weekdays
+              </p>
+            </div>
+          )}
 
           {!isDigestAlert && (
             <div className="space-y-2">

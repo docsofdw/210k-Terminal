@@ -54,6 +54,12 @@ export const alertTimezone = pgEnum("alert_timezone", [
   "asia_hong_kong"    // 8 AM HKT
 ])
 
+// Delivery days (for scheduled alerts like daily digest)
+export const alertDeliveryDays = pgEnum("alert_delivery_days", [
+  "every_day",      // All 7 days
+  "weekdays_only"   // Monday-Friday only
+])
+
 export const alerts = pgTable("alerts", {
   id: uuid("id").defaultRandom().primaryKey(),
 
@@ -75,6 +81,7 @@ export const alerts = pgTable("alerts", {
   isRepeating: boolean("is_repeating").default(false).notNull(), // Trigger once or repeatedly
   cooldownMinutes: decimal("cooldown_minutes", { precision: 10, scale: 0 }), // Minutes before re-triggering
   timezone: alertTimezone("timezone").default("america_chicago"), // Timezone for scheduled alerts (8 AM delivery)
+  deliveryDays: alertDeliveryDays("delivery_days").default("every_day"), // Which days to deliver (for digest)
 
   // Status
   status: alertStatus("status").default("active").notNull(),
