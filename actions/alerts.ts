@@ -286,76 +286,53 @@ export async function triggerAlert({
     switch (alert.type) {
       case "price_above":
       case "price_below":
-        telegramMessage = `${directionEmoji} <b>PRICE ALERT</b>
+        telegramMessage = `${directionEmoji} <b>${companyTicker}</b> Price
 
-<b>${companyName}</b> (${companyTicker})
-
-Price crossed ${direction} your threshold
-
-━━━━━━━━━━━━━━━
-📊 Current:    <b>${currency} ${actualValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b>
-🎯 Threshold:  ${currency} ${threshold.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-━━━━━━━━━━━━━━━
+Crossed ${direction} <b>${currency} ${threshold.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b>
+Current: <b>${currency} ${actualValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b>
 
 <i>210k Terminal</i>`
 
-        slackMessage = `${directionEmoji} *PRICE ALERT*\n\n*${companyName}* (${companyTicker})\n\nPrice crossed ${direction} your threshold\n\n• Current: *${currency} ${actualValue.toFixed(2)}*\n• Threshold: ${currency} ${threshold.toFixed(2)}`
+        slackMessage = `${directionEmoji} *${companyTicker}* Price\nCrossed ${direction} *${currency} ${threshold.toFixed(2)}* → Current: *${currency} ${actualValue.toFixed(2)}*`
         break
 
       case "mnav_above":
       case "mnav_below":
-        telegramMessage = `${directionEmoji} <b>mNAV ALERT</b>
+        telegramMessage = `${directionEmoji} <b>${companyTicker}</b> mNAV
 
-<b>${companyName}</b> (${companyTicker})
-
-mNAV crossed ${direction} your threshold
-
-━━━━━━━━━━━━━━━
-📊 Current:    <b>${actualValue.toFixed(2)}x</b>
-🎯 Threshold:  ${threshold.toFixed(2)}x
-━━━━━━━━━━━━━━━
+Crossed ${direction} <b>${threshold.toFixed(2)}x</b>
+Current: <b>${actualValue.toFixed(2)}x</b>
 
 <i>210k Terminal</i>`
 
-        slackMessage = `${directionEmoji} *mNAV ALERT*\n\n*${companyName}* (${companyTicker})\n\nmNAV crossed ${direction} your threshold\n\n• Current: *${actualValue.toFixed(2)}x*\n• Threshold: ${threshold.toFixed(2)}x`
+        slackMessage = `${directionEmoji} *${companyTicker}* mNAV\nCrossed ${direction} *${threshold.toFixed(2)}x* → Current: *${actualValue.toFixed(2)}x*`
         break
 
       case "btc_holdings":
         const change = actualValue - (previousValue || 0)
         const changeEmoji = change > 0 ? "🟢" : "🔴"
-        telegramMessage = `${changeEmoji} <b>BTC HOLDINGS UPDATE</b>
+        telegramMessage = `${changeEmoji} <b>${companyTicker}</b> BTC Holdings
 
-<b>${companyName}</b> (${companyTicker})
-
-━━━━━━━━━━━━━━━
-📊 Previous:  ${previousValue?.toLocaleString() || "?"} BTC
-📊 Current:   <b>${actualValue.toLocaleString()} BTC</b>
-📈 Change:    ${change >= 0 ? "+" : ""}${change.toLocaleString()} BTC
-━━━━━━━━━━━━━━━
+<code>Previous  ${(previousValue?.toLocaleString() || "?").padStart(10)}
+Current   ${actualValue.toLocaleString().padStart(10)}
+Change    ${((change >= 0 ? "+" : "") + change.toLocaleString()).padStart(10)}</code>
 
 <i>210k Terminal</i>`
 
-        slackMessage = `${changeEmoji} *BTC HOLDINGS UPDATE*\n\n*${companyName}* (${companyTicker})\n\n• Previous: ${previousValue?.toLocaleString() || "?"} BTC\n• Current: *${actualValue.toLocaleString()} BTC*\n• Change: ${change >= 0 ? "+" : ""}${change.toLocaleString()} BTC`
+        slackMessage = `${changeEmoji} *${companyTicker}* BTC Holdings\nPrevious: ${previousValue?.toLocaleString() || "?"} → Current: *${actualValue.toLocaleString()}* (${change >= 0 ? "+" : ""}${change.toLocaleString()})`
         break
 
       case "pct_change_up":
       case "pct_change_down":
         const pctThreshold = alert.thresholdPercent ? parseFloat(alert.thresholdPercent) : 0
         const pctEmoji = actualValue > 0 ? "📈" : "📉"
-        telegramMessage = `${pctEmoji} <b>PRICE MOVEMENT</b>
+        telegramMessage = `${pctEmoji} <b>${companyTicker}</b> ${actualValue >= 0 ? "+" : ""}${actualValue.toFixed(2)}%
 
-<b>${companyName}</b> (${companyTicker})
-
-Significant price movement detected
-
-━━━━━━━━━━━━━━━
-📊 Change:     <b>${actualValue >= 0 ? "+" : ""}${actualValue.toFixed(2)}%</b>
-🎯 Threshold:  ${pctThreshold.toFixed(2)}%
-━━━━━━━━━━━━━━━
+Threshold: ${pctThreshold.toFixed(2)}%
 
 <i>210k Terminal</i>`
 
-        slackMessage = `${pctEmoji} *PRICE MOVEMENT*\n\n*${companyName}* (${companyTicker})\n\n• Change: *${actualValue >= 0 ? "+" : ""}${actualValue.toFixed(2)}%*\n• Threshold: ${pctThreshold.toFixed(2)}%`
+        slackMessage = `${pctEmoji} *${companyTicker}* ${actualValue >= 0 ? "+" : ""}${actualValue.toFixed(2)}% (threshold: ${pctThreshold.toFixed(2)}%)`
         break
     }
 
@@ -594,13 +571,13 @@ export async function sendOnchainDigest(
 
     const telegramMessage = `📊 <b>On-Chain Brief</b> • ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })}
 
-₿ <b>$${metrics.btcPrice.toLocaleString(undefined, { maximumFractionDigits: 0 })}</b>
+<b>₿ $${metrics.btcPrice.toLocaleString(undefined, { maximumFractionDigits: 0 })}</b>
 
-😱 F&G     <b>${metrics.fearGreed}</b>  ${fgLabel}
-📈 MVRV   <b>${metrics.mvrvZScore.toFixed(2)}</b>  ${mvrvLabel}
-💰 NUPL   <b>${(metrics.nupl * 100).toFixed(0)}%</b>  ${nuplLabel}
-⚡ FR       ${(metrics.fundingRate * 100).toFixed(3)}%
-📏 200W   ${metrics.premium200WMA >= 0 ? "+" : ""}${metrics.premium200WMA.toFixed(0)}%
+<code>F&G    ${String(metrics.fearGreed).padStart(5)}  (${fgLabel})
+MVRV   ${metrics.mvrvZScore.toFixed(2).padStart(5)}  (${mvrvLabel})
+NUPL   ${((metrics.nupl * 100).toFixed(0) + "%").padStart(5)}  (${nuplLabel})
+FR     ${((metrics.fundingRate * 100).toFixed(2) + "%").padStart(5)}
+200W   ${((metrics.premium200WMA >= 0 ? "+" : "") + metrics.premium200WMA.toFixed(0) + "%").padStart(5)}</code>
 
 <i>210k Terminal</i>`
 

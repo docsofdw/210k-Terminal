@@ -72,50 +72,54 @@ Per-company configuration allows higher thresholds for companies that historical
 
 ## Alert Message Templates
 
-### BTC Purchase Alert (Telegram)
+### Price Alert (Telegram)
 
 ```
-🟢 BTC PURCHASE DETECTED
+⬆️ MSTR Price
 
-[Company Name] has announced a Bitcoin purchase.
+Crossed above $350.00
+Current: $362.50
 
-Amount: +XXX BTC
-New Total: X,XXX BTC
-Source: [IR/Twitter]
-
-[Approve] [Review] [Dismiss]
+210k Terminal
 ```
 
 ---
 
-### mNAV Breach Alert (Telegram)
+### mNAV Alert (Telegram)
 
 ```
-⚠️ mNAV THRESHOLD BREACH
+⬇️ MSTR mNAV
 
-[Company Name] mNAV crossed [threshold]
+Crossed below 1.50x
+Current: 1.42x
 
-Current mNAV: X.XX
-Previous: X.XX (Xh ago)
-Change: +XX%
-
-[View Dashboard]
+210k Terminal
 ```
 
 ---
 
-### Large Price Move Alert (Telegram)
+### BTC Holdings Alert (Telegram)
 
 ```
-📈 SIGNIFICANT PRICE MOVE
+🟢 MSTR BTC Holdings
 
-[Company Name] ([Ticker])
+Previous      450,000
+Current       478,000
+Change        +28,000
 
-Price: $XX.XX
-Change: +X.X% (24h)
-mNAV: X.XX
+210k Terminal
+```
 
-[View Dashboard]
+---
+
+### Price Movement Alert (Telegram)
+
+```
+📈 MSTR +5.25%
+
+Threshold: 5.00%
+
+210k Terminal
 ```
 
 ---
