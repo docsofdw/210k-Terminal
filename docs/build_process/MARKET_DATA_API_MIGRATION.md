@@ -36,6 +36,37 @@
    - Yahoo Finance → International stocks
    - Twelve Data → Balance sheet fundamentals only
 
+4. **Google Sheets Fallback:** Instead of completely removing Google Sheets, it's now used as automatic fallback when APIs fail for specific companies. The `sync-sheets` cron was removed from scheduled execution but the endpoint remains available.
+
+### Data Source Summary
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    MARKET DATA (APIs Primary)                    │
+├─────────────────────────────────────────────────────────────────┤
+│  sync-market-data (every 15 min)                                │
+│  ├── US Stocks ──────────► MarketData.app                       │
+│  ├── International ──────► Yahoo Finance                        │
+│  └── If API fails ───────► Google Sheets (automatic fallback)   │
+│                                                                  │
+│  sync-fundamentals (daily)                                       │
+│  └── Balance Sheet ──────► Twelve Data                          │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│                 PORTFOLIO DATA (Google Sheets)                   │
+├─────────────────────────────────────────────────────────────────┤
+│  sync-portfolio (every 4 hrs)                                    │
+│  └── Fund Positions ─────► Live Portfolio Sheet                 │
+│                                                                  │
+│  sync-fund-performance (1st & 15th)                              │
+│  └── Monthly Returns ────► Fund Performance Sheet               │
+│                                                                  │
+│  sync-live-fund-stats (every 4 hrs)                              │
+│  └── Live NAV ───────────► Fund Stats Sheet                     │
+└─────────────────────────────────────────────────────────────────┘
+```
+
 ---
 
 ## Table of Contents

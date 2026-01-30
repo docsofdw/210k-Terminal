@@ -311,11 +311,29 @@ BITCOIN_MAGAZINE_PRO_API_KEY= # On-chain metrics API
 
 ## Cron Job Schedule
 
-| Cron | Frequency | Purpose |
-|------|-----------|---------|
-| `/api/cron/btc-price` | Every 1 min | Update BTC price from CoinGecko |
-| `/api/cron/sync-market-data` | Every 15 min | Update stock prices (MarketData.app + Yahoo) |
-| `/api/cron/sync-fundamentals` | Daily 6am UTC | Update balance sheet data (Twelve Data) |
-| `/api/cron/stock-prices-hourly` | Every 1 hour | Legacy: Update prices + create/update daily snapshots |
-| `/api/cron/daily-snapshot` | Midnight UTC | Create final daily snapshot with D.mNAV |
-| `/api/cron/fx-rates` | 6am ET daily | Update FX rates |
+### Market Data (APIs - Primary)
+
+| Cron | Frequency | Provider | Purpose |
+|------|-----------|----------|---------|
+| `/api/cron/btc-price` | Every 5 min | CoinGecko | Update BTC price |
+| `/api/cron/sync-market-data` | Every 15 min | MarketData.app + Yahoo | Stock prices (with Sheets fallback) |
+| `/api/cron/sync-fundamentals` | Daily 6am UTC | Twelve Data | Balance sheet data (cash, debt, shares) |
+| `/api/cron/stock-prices` | Every 15 min (weekdays) | Yahoo Finance | Legacy stock price updates |
+| `/api/cron/daily-snapshot` | Midnight UTC | Calculated | Create daily snapshot with D.mNAV |
+| `/api/cron/fx-rates` | Every 4 hours | Exchange Rate API | FX rates |
+
+### Portfolio & Fund Data (Google Sheets - Primary)
+
+| Cron | Frequency | Sheet | Purpose |
+|------|-----------|-------|---------|
+| `/api/cron/sync-portfolio` | Every 4 hours | Live Portfolio | Fund positions (qty, value, weight) |
+| `/api/cron/sync-fund-performance` | 1st & 15th | Fund Performance | Monthly returns |
+| `/api/cron/sync-live-fund-stats` | Every 4 hours | Fund Stats | Live NAV |
+
+### Fallback (Google Sheets - Backup)
+
+| Cron | Status | Purpose |
+|------|--------|---------|
+| `/api/cron/sync-sheets` | **Not scheduled** (manual only) | Full company data sync - used as fallback when APIs fail |
+
+**Note:** The `sync-market-data` cron automatically falls back to Google Sheets for any company where the API fails. This provides seamless backup without manual intervention.
