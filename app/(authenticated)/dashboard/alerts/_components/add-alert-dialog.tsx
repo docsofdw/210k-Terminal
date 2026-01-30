@@ -81,6 +81,7 @@ export function AddAlertDialog({ companies }: AddAlertDialogProps) {
     webhookUrl: "",
     isRepeating: true,
     cooldownMinutes: "60",
+    timezone: "america_chicago",
     description: ""
   })
 
@@ -104,6 +105,7 @@ export function AddAlertDialog({ companies }: AddAlertDialogProps) {
         webhookUrl: formData.channel === "slack" ? formData.webhookUrl || null : null,
         isRepeating: isDigestAlert ? true : formData.isRepeating,
         cooldownMinutes: isDigestAlert ? "1440" : formData.cooldownMinutes || null, // 24 hours for digest
+        timezone: formData.timezone as "america_chicago" | "asia_hong_kong",
         description: formData.description || null
       })
 
@@ -121,6 +123,7 @@ export function AddAlertDialog({ companies }: AddAlertDialogProps) {
           webhookUrl: "",
           isRepeating: true,
           cooldownMinutes: "60",
+          timezone: "america_chicago",
           description: ""
         })
         router.refresh()
@@ -287,6 +290,24 @@ export function AddAlertDialog({ companies }: AddAlertDialogProps) {
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="timezone">Delivery Time</Label>
+              <Select
+                value={formData.timezone}
+                onValueChange={value => setFormData({ ...formData, timezone: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="america_chicago">8 AM CST (US Central)</SelectItem>
+                  <SelectItem value="asia_hong_kong">8 AM HKT (Hong Kong)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {!isDigestAlert && (
+            <div className="space-y-2">
               <Label htmlFor="cooldown">Cooldown (minutes)</Label>
               <Input
                 id="cooldown"
@@ -297,8 +318,11 @@ export function AddAlertDialog({ companies }: AddAlertDialogProps) {
                 }
                 placeholder="60"
               />
+              <p className="text-[10px] text-muted-foreground">
+                Minimum time between repeated alerts
+              </p>
             </div>
-          </div>
+          )}
 
           {formData.channel === "telegram" && (
             <div className="space-y-2">

@@ -278,12 +278,23 @@ Single channel receives:
 | Alert | Schedule | Timezone |
 |-------|----------|----------|
 | Daily Summary | 9:00 AM | ET |
-| On-Chain Daily Digest | 9:00 AM | ET |
+| On-Chain Daily Digest | 8:00 AM | User-selected (CST or HKT) |
 | Weekly Digest | Monday 9:00 AM | ET |
 | Price checks | Every 15 min (market hours) | - |
-| BTC price check | Every 1 min | - |
+| BTC price check | Every 5 min | - |
 | mNAV calculation | On price update | - |
-| On-Chain metric checks | Every 1 hour | - |
+| On-Chain metric checks | Every 5 min | - |
+
+### Timezone Options
+
+When creating alerts, users can select their preferred delivery timezone:
+
+| Option | Timezone | Delivery Time |
+|--------|----------|---------------|
+| 8 AM CST (US Central) | America/Chicago | 8:00 AM Central Time |
+| 8 AM HKT (Hong Kong) | Asia/Hong_Kong | 8:00 AM Hong Kong Time |
+
+The Daily Digest will only send during the 8:00 AM hour in the selected timezone.
 
 ---
 

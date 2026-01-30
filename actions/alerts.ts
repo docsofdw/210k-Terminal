@@ -18,6 +18,34 @@ import { requireAuth } from "@/lib/auth/permissions"
 import * as telegram from "@/lib/notifications/telegram"
 import * as slack from "@/lib/notifications/slack"
 
+// ============ TIMEZONE HELPERS ============
+
+/**
+ * Check if it's currently 8 AM (8:00-8:59) in the specified timezone
+ */
+function isDeliveryTime(timezone: string | null): boolean {
+  const now = new Date()
+
+  let tz: string
+  switch (timezone) {
+    case "asia_hong_kong":
+      tz = "Asia/Hong_Kong"
+      break
+    case "america_chicago":
+    default:
+      tz = "America/Chicago"
+  }
+
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone: tz,
+    hour: "numeric",
+    hour12: false
+  })
+
+  const hour = parseInt(formatter.format(now), 10)
+  return hour === 8
+}
+
 // ============ ALERTS ============
 
 export async function getAlerts(): Promise<SelectAlert[]> {
@@ -903,7 +931,10 @@ export async function checkAllAlerts(): Promise<{
               metricName = "Funding Rate"
               break
             case "onchain_daily_digest":
-              // Daily digest - check if enough time has passed (handled in sendOnchainDigest)
+              // Daily digest - only send at 8 AM in user's timezone
+              if (!isDeliveryTime(alert.timezone)) {
+                continue // Not the right time, skip
+              }
               const digestResult = await sendOnchainDigest(alert, {
                 fearGreed: latestFearGreed,
                 mvrvZScore: latestMvrv,

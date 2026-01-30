@@ -48,6 +48,12 @@ export const alertStatus = pgEnum("alert_status", [
   "expired"
 ])
 
+// Alert timezone (for scheduled alerts like daily digest)
+export const alertTimezone = pgEnum("alert_timezone", [
+  "america_chicago",  // 8 AM CST
+  "asia_hong_kong"    // 8 AM HKT
+])
+
 export const alerts = pgTable("alerts", {
   id: uuid("id").defaultRandom().primaryKey(),
 
@@ -68,6 +74,7 @@ export const alerts = pgTable("alerts", {
   // Alert behavior
   isRepeating: boolean("is_repeating").default(false).notNull(), // Trigger once or repeatedly
   cooldownMinutes: decimal("cooldown_minutes", { precision: 10, scale: 0 }), // Minutes before re-triggering
+  timezone: alertTimezone("timezone").default("america_chicago"), // Timezone for scheduled alerts (8 AM delivery)
 
   // Status
   status: alertStatus("status").default("active").notNull(),
