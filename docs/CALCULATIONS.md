@@ -47,6 +47,54 @@ The core valuation metric:
 
 ---
 
+### Diluted mNAV (D.mNAV)
+
+```
+Diluted_Shares = Basic_Shares + Warrants + Options + Convertibles
+Diluted_Mkt_Cap = Diluted_Shares * Stock_Price
+Diluted_EV = Diluted_Mkt_Cap + Debt_USD + Preferreds_USD - Cash_USD
+Diluted_mNAV = Diluted_EV / BTC_NAV
+```
+
+**Why Diluted mNAV matters:**
+- Companies like XXI have significant dilution (10.3M basic → 709.9M diluted shares)
+- Basic mNAV can be misleading (XXI: 0.02x basic vs 1.50x diluted)
+- Diluted mNAV reflects the true valuation including all potential shares
+
+**UI Labels:**
+- Comps table: "D.mNAV" column
+- Value Screener: "D.mNAV" column
+- Charts: "D.mNAV" in legends and tooltips
+
+**Calculation Example (XXI):**
+```
+Basic Shares: 10,300,000
+Diluted Shares: 709,924,346
+Stock Price: $7.63
+BTC Holdings: 43,514
+BTC Price: $84,294
+
+Basic Mkt Cap = 10.3M × $7.63 = $78.6M
+Diluted Mkt Cap = 709.9M × $7.63 = $5.42B
+
+BTC NAV = 43,514 × $84,294 = $3.67B
+
+Basic mNAV = $78.6M / $3.67B = 0.02x
+Diluted mNAV = $5.42B / $3.67B = 1.48x
+```
+
+---
+
+### 1x D.mNAV Price
+
+```
+Price_at_1x = Current_Price / Diluted_mNAV
+```
+
+The theoretical stock price if the company traded at exactly 1x diluted mNAV (fair value based on BTC holdings).
+
+---
+
 ### Fiat Debt to BTC NAV
 
 ```

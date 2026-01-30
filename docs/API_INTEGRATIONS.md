@@ -1,16 +1,67 @@
 # API Integration Specifications
 
-## Stock Price Data (Yahoo Finance) - Primary
+## Stock Price Data - Provider Routing
 
-**Purpose:** Automated stock price retrieval for all tracked companies (global coverage)
+As of January 2026, stock price data uses a multi-provider strategy:
+
+| Provider | Coverage | Use Case |
+|----------|----------|----------|
+| MarketData.app | US stocks | Primary for NYSE, NASDAQ, AMEX |
+| Yahoo Finance | International | .T, .HK, .L, .V, .AX, .SA, etc. |
+| Twelve Data | Fundamentals | Balance sheet data (cash, debt, shares) |
+
+### Provider Selection Logic
+
+```typescript
+function getProvider(ticker: string): "marketdata" | "yahoo" {
+  const INTERNATIONAL_SUFFIXES = [
+    ".T", ".HK", ".L", ".V", ".AX", ".SA", ".BK", ".KQ",
+    ".PA", ".HM", ".MC", ".ST", ".AQ", ".F"
+  ]
+
+  for (const suffix of INTERNATIONAL_SUFFIXES) {
+    if (ticker.toUpperCase().endsWith(suffix)) {
+      return "yahoo"  // International stocks
+    }
+  }
+  return "marketdata"  // US stocks
+}
+```
+
+---
+
+## MarketData.app (US Stocks) - Primary
+
+**Purpose:** Real-time quotes for US-listed stocks
+
+**API:** `https://api.marketdata.app/v1`
+
+**Plan:** Trader (~$30/month)
+
+**Rate Limits:** 100 requests/minute
+
+**Refresh Frequency:**
+- Every 15 minutes via sync-market-data cron
+
+**Endpoints Used:**
+| Endpoint | Purpose |
+|----------|---------|
+| `/v1/stocks/quotes/{symbols}` | Batch quotes (price, change, volume) |
+
+**Environment Variable:** `MARKETDATA_API_KEY`
+
+---
+
+## Stock Price Data (Yahoo Finance) - International
+
+**Purpose:** Automated stock price retrieval for international companies
 
 **Library:** `yahoo-finance2` (npm package)
 
 **Rate Limits:** ~2,000 requests/hour (unofficial, be conservative)
 
 **Refresh Frequency:**
-- Every 15 minutes during market hours (stock-prices cron)
-- Hourly updates with snapshot creation (stock-prices-hourly cron)
+- Every 15 minutes via sync-market-data cron
 - Daily snapshot at midnight UTC (daily-snapshot cron)
 
 **Historical Data Backfill:**
@@ -55,27 +106,34 @@ npm run db:backfill -- --days=365
 
 ---
 
-## Stock Price Data (Finnhub) - Optional Supplement
+## Twelve Data (Fundamentals)
 
-**Purpose:** Real-time quotes for US stocks (supplement to Yahoo Finance)
+**Purpose:** Balance sheet data (cash, debt, diluted shares) for all companies
 
-**API:** Finnhub.io REST API
+**API:** `https://api.twelvedata.com`
 
-**Rate Limits:** 60 API calls/minute (free tier)
+**Plan:** Pro (~$79/month)
 
-**Data Delay:** ~15 minutes on free tier
+**Rate Limits:** 8 requests/minute for balance_sheet endpoint
 
-**Best For:**
-- US stocks only (NASDAQ, NYSE, AMEX)
-- Real-time news and earnings data
-- Intraday candle data (1m, 5m, 15m, etc.)
+**Refresh Frequency:**
+- Daily at 6am UTC via sync-fundamentals cron
+- Only updates companies with stale data (>7 days old)
 
-**Setup:**
-1. Sign up at https://finnhub.io/
-2. Get free API key
-3. Add to environment: `FINNHUB_API_KEY=your_key`
+**Endpoints Used:**
+| Endpoint | Purpose | Credits |
+|----------|---------|---------|
+| `/balance_sheet` | Cash, debt, shares outstanding | 100/symbol |
 
-**Note:** For international stocks (Tokyo, Hong Kong, London, etc.), Yahoo Finance is recommended as Finnhub's free tier is US-focused.
+**Environment Variable:** `TWELVE_DATA_API_KEY`
+
+---
+
+## Finnhub (Deprecated)
+
+**Status:** No longer used. Replaced by MarketData.app for US stocks.
+
+**Note:** Was previously used as optional supplement for US stock real-time quotes.
 
 ---
 
@@ -205,11 +263,14 @@ https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd
 ## Environment Variables
 
 ```bash
+# MarketData.app (US Stocks)
+MARKETDATA_API_KEY=          # From MarketData.app Trader plan
+
+# Twelve Data (Fundamentals)
+TWELVE_DATA_API_KEY=         # From Twelve Data Pro plan
+
 # Yahoo Finance
 # No API key required for yahoo-finance2
-
-# Finnhub (Optional - for US stock real-time quotes)
-FINNHUB_API_KEY=             # Free at https://finnhub.io/
 
 # CoinGecko
 COINGECKO_API_KEY=           # Optional, for higher rate limits
@@ -238,8 +299,9 @@ BITCOIN_MAGAZINE_PRO_API_KEY= # On-chain metrics API
 
 | API | Rate Limit | Our Usage |
 |-----|------------|-----------|
-| Yahoo Finance | ~2,000/hour | ~90/hour (15 companies × 4/hour + hourly updates) |
-| Finnhub | 60/min (free) | Optional, US stocks only |
+| MarketData.app | 100/min | ~70 US stocks every 15 min |
+| Yahoo Finance | ~2,000/hour | ~37 international stocks every 15 min |
+| Twelve Data | 8/min (balance_sheet) | ~50 companies daily |
 | CoinGecko | 10-50/min | 1/min |
 | FX API | 1,500/month | 30/month (1/day) |
 | Bitcoin Magazine Pro | 500/day | ~168/day max (7 metrics × 24 hours) |
@@ -251,8 +313,9 @@ BITCOIN_MAGAZINE_PRO_API_KEY= # On-chain metrics API
 
 | Cron | Frequency | Purpose |
 |------|-----------|---------|
-| `/api/cron/btc-price` | Every 1 min | Update BTC price |
-| `/api/cron/stock-prices` | Every 15 min | Update stock prices |
-| `/api/cron/stock-prices-hourly` | Every 1 hour | Update prices + create/update daily snapshots |
-| `/api/cron/daily-snapshot` | Midnight UTC | Create final daily snapshot for all companies |
+| `/api/cron/btc-price` | Every 1 min | Update BTC price from CoinGecko |
+| `/api/cron/sync-market-data` | Every 15 min | Update stock prices (MarketData.app + Yahoo) |
+| `/api/cron/sync-fundamentals` | Daily 6am UTC | Update balance sheet data (Twelve Data) |
+| `/api/cron/stock-prices-hourly` | Every 1 hour | Legacy: Update prices + create/update daily snapshots |
+| `/api/cron/daily-snapshot` | Midnight UTC | Create final daily snapshot with D.mNAV |
 | `/api/cron/fx-rates` | 6am ET daily | Update FX rates |

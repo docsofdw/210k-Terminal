@@ -132,8 +132,9 @@ export function RelativeValueScreener({ data }: RelativeValueScreenerProps) {
             <th
               className="cursor-pointer whitespace-nowrap px-3 py-2 text-right font-medium text-muted-foreground hover:text-foreground"
               onClick={() => handleSort("mNav")}
+              title="Diluted mNAV - Enterprise Value ÷ BTC NAV (using fully diluted shares)"
             >
-              mNAV
+              D.mNAV
               <SortIcon columnKey="mNav" />
             </th>
             <th

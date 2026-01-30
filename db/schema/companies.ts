@@ -85,11 +85,22 @@ export const companies = pgTable("companies", {
   // Insider Activity
   insiderBuySellRatio: decimal("insider_buy_sell_ratio", { precision: 10, scale: 4 }),
 
-  // BTC Holdings Metadata (legacy)
+  // BTC Holdings Metadata
   btcHoldingsDate: timestamp("btc_holdings_date"),
-  btcHoldingsSource: text("btc_holdings_source"),
+  btcHoldingsSource: text("btc_holdings_source"), // "8-K", "Press Release", "Earnings", etc.
+  btcHoldingsManual: decimal("btc_holdings_manual", { precision: 20, scale: 8 }), // Manual override value
+  btcHoldingsUpdatedAt: timestamp("btc_holdings_updated_at"),
 
-  // Sync Metadata
+  // Data Source Tracking (for API migration)
+  dataSource: text("data_source"), // "marketdata" | "twelvedata" | "sheets" | "manual"
+  lastQuoteAt: timestamp("last_quote_at"), // When price/quote was last fetched from API
+  lastFundamentalsAt: timestamp("last_fundamentals_at"), // When balance sheet was last fetched
+
+  // Source tracking for fundamental data (allows manual overrides)
+  cashSource: text("cash_source"), // "api" | "manual"
+  debtSource: text("debt_source"), // "api" | "manual"
+
+  // Sync Metadata (legacy Google Sheets sync)
   lastSyncedAt: timestamp("last_synced_at"),
   syncSource: text("sync_source"),
 

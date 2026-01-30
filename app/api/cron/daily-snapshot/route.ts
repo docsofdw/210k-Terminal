@@ -2,9 +2,7 @@ import { db } from "@/db"
 import { companies } from "@/db/schema/companies"
 import { dailySnapshots, marketSnapshots } from "@/db/schema/daily-snapshots"
 import { btcPrices } from "@/db/schema/btc-prices"
-import { stockPrices } from "@/db/schema/stock-prices"
 import { fxRates } from "@/db/schema/fx-rates"
-import { getCompsTableData } from "@/lib/api/google-sheets"
 import { desc, eq } from "drizzle-orm"
 import { NextRequest, NextResponse } from "next/server"
 
@@ -29,30 +27,20 @@ export async function GET(request: NextRequest) {
     const snapshotDate = normalizeDate(new Date())
 
     // Fetch all required data
+    // NOTE: Now reads prices directly from companies table (updated by sync-market-data cron)
+    // instead of the separate stock_prices table
     const [
       allCompanies,
       latestBtcPrice,
-      allStockPrices,
       allFxRates
     ] = await Promise.all([
       db.select().from(companies).where(eq(companies.status, "active")),
       db.query.btcPrices.findFirst({ orderBy: [desc(btcPrices.priceAt)] }),
-      db.select().from(stockPrices).orderBy(desc(stockPrices.priceAt)),
       db.select().from(fxRates).orderBy(desc(fxRates.rateAt))
     ])
 
     // Get BTC price
-    let btcPrice = latestBtcPrice ? parseFloat(latestBtcPrice.priceUsd) : null
-
-    // Build stock price map (latest price per company)
-    const stockPriceMap = new Map<string, number>()
-    const seenCompanyIds = new Set<string>()
-    for (const price of allStockPrices) {
-      if (!seenCompanyIds.has(price.companyId)) {
-        stockPriceMap.set(price.companyId, parseFloat(price.price))
-        seenCompanyIds.add(price.companyId)
-      }
-    }
+    const btcPrice = latestBtcPrice ? parseFloat(latestBtcPrice.priceUsd) : null
 
     // Build FX rate map
     const fxRateMap = new Map<string, number>()
@@ -64,32 +52,15 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Try Google Sheets as backup if we're missing data
-    let sheetData: Map<string, { btcHoldings?: number; mNav?: number }> | null = null
-    if (!btcPrice || stockPriceMap.size === 0) {
-      const sheetsResult = await getCompsTableData()
-      if (sheetsResult) {
-        if (!btcPrice && sheetsResult.btcPrice) {
-          btcPrice = sheetsResult.btcPrice
-        }
-        sheetData = new Map()
-        for (const company of sheetsResult.companies) {
-          sheetData.set(company.ticker.toUpperCase(), {
-            btcHoldings: company.btcHoldings ?? undefined,
-            mNav: company.mNav ?? undefined
-          })
-        }
-      }
-    }
-
     if (!btcPrice) {
       return NextResponse.json(
-        { error: "No BTC price available from any source" },
+        { error: "No BTC price available" },
         { status: 500 }
       )
     }
 
     // Create snapshots for each company
+    // Now uses pre-calculated values from companies table (updated by sync-market-data cron)
     const snapshots: typeof dailySnapshots.$inferInsert[] = []
     let totalBtcHoldings = 0
     let totalMarketCapUsd = 0
@@ -98,16 +69,16 @@ export async function GET(request: NextRequest) {
     const mNavValues: number[] = []
 
     for (const company of allCompanies) {
-      const stockPrice = stockPriceMap.get(company.id)
+      // Read stock price directly from companies table (set by sync-market-data)
+      const stockPrice = company.price ? parseFloat(company.price) : null
       const currencyCode = company.tradingCurrency || company.currencyCode || "USD"
-      const fxRate = fxRateMap.get(currencyCode) || 1
-      const sheetCompany = sheetData?.get(company.ticker.toUpperCase())
+      const fxRate = company.conversionRate
+        ? parseFloat(company.conversionRate)
+        : fxRateMap.get(currencyCode) || 1
 
-      // Calculate values
+      // Use values from companies table (already updated by sync-market-data)
       const stockPriceUsd = stockPrice ? stockPrice / fxRate : null
-      const btcHoldings = company.btcHoldings
-        ? parseFloat(company.btcHoldings)
-        : sheetCompany?.btcHoldings ?? null
+      const btcHoldings = company.btcHoldings ? parseFloat(company.btcHoldings) : null
       const sharesOutstanding = company.sharesOutstanding
         ? parseFloat(company.sharesOutstanding)
         : null
@@ -117,26 +88,43 @@ export async function GET(request: NextRequest) {
         ? parseFloat(company.preferredsUsd)
         : 0
 
-      // Market cap
-      const marketCapUsd =
-        stockPriceUsd && sharesOutstanding
-          ? stockPriceUsd * sharesOutstanding
+      // Use DILUTED market cap from companies table (matches Comps table D.MNAV)
+      // Fall back to basic market cap if diluted not available
+      const dilutedShares = company.dilutedShares
+        ? parseFloat(company.dilutedShares)
+        : sharesOutstanding
+      const marketCapUsd = company.dilutedMarketCapUsd
+        ? parseFloat(company.dilutedMarketCapUsd)
+        : company.marketCapUsd
+          ? parseFloat(company.marketCapUsd)
+          : stockPriceUsd && dilutedShares
+            ? stockPriceUsd * dilutedShares
+            : null
+
+      // Use pre-calculated BTC NAV from companies table, or calculate if missing
+      const btcNav = company.btcNavUsd
+        ? parseFloat(company.btcNavUsd)
+        : btcHoldings
+          ? btcHoldings * btcPrice
           : null
 
-      // BTC NAV
-      const btcNav = btcHoldings ? btcHoldings * btcPrice : null
+      // Use DILUTED EV from companies table (matches Comps table)
+      // EV = Diluted Market Cap + Debt + Preferreds - Cash
+      const evUsd = company.dilutedEvUsd
+        ? parseFloat(company.dilutedEvUsd)
+        : company.enterpriseValueUsd
+          ? parseFloat(company.enterpriseValueUsd)
+          : marketCapUsd
+            ? marketCapUsd + debtUsd + preferredsUsd - cashUsd
+            : null
 
-      // Enterprise Value
-      const evUsd = marketCapUsd
-        ? marketCapUsd + debtUsd + preferredsUsd - cashUsd
+      // Use DILUTED mNAV from companies table (this is what Comps table shows as D.MNAV)
+      // This accounts for warrants, options, convertibles, etc.
+      let mNav: number | null = company.dilutedMNav
+        ? parseFloat(company.dilutedMNav)
         : null
-
-      // mNAV
-      let mNav: number | null = null
-      if (evUsd && btcNav && btcNav > 0) {
+      if (!mNav && evUsd && btcNav && btcNav > 0) {
         mNav = evUsd / btcNav
-      } else if (sheetCompany?.mNav) {
-        mNav = sheetCompany.mNav
       }
 
       // Sats per share
@@ -179,7 +167,7 @@ export async function GET(request: NextRequest) {
         preferredsUsd: preferredsUsd.toString(),
         fxRate: fxRate.toString(),
         tradingCurrency: currencyCode,
-        dataSource: sheetData ? "google_sheets" : "database",
+        dataSource: company.dataSource || "database",
         rawData: { company, stockPrice, fxRate }
       })
     }
@@ -242,7 +230,7 @@ export async function GET(request: NextRequest) {
       btcPrice,
       totalBtcHoldings,
       avgMNav,
-      dataSource: sheetData ? "mixed" : "database"
+      dataSource: "api_calculated"
     })
   } catch (error) {
     console.error("Daily snapshot cron error:", error)

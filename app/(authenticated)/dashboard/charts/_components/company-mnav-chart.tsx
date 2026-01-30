@@ -59,12 +59,12 @@ export function CompanyMNavChart({ data, companyName }: CompanyMNavChartProps) {
             borderRadius: "4px"
           }}
           labelStyle={{ color: "#999" }}
-          formatter={(value) => [`${Number(value).toFixed(3)}x`, "mNAV"]}
+          formatter={(value) => [`${Number(value).toFixed(3)}x`, "D.mNAV"]}
         />
         <Line
           type="monotone"
           dataKey="mNav"
-          name="mNAV"
+          name="D.mNAV"
           stroke="#ff8200"
           strokeWidth={2}
           dot={false}

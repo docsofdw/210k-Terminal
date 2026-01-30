@@ -39,7 +39,7 @@ export function MNavChart({ data }: MNavChartProps) {
   if (chartData.length === 0) {
     return (
       <div className="flex h-[300px] items-center justify-center text-muted-foreground">
-        <p>No mNAV data available. Run the daily snapshot cron to generate data.</p>
+        <p>No D.mNAV data available. Run the daily snapshot cron to generate data.</p>
       </div>
     )
   }
@@ -74,7 +74,7 @@ export function MNavChart({ data }: MNavChartProps) {
         <Line
           type="monotone"
           dataKey="avgMNav"
-          name="Avg mNAV"
+          name="Avg D.mNAV"
           stroke={COLORS.avgMNav}
           strokeWidth={2}
           dot={false}
@@ -83,7 +83,7 @@ export function MNavChart({ data }: MNavChartProps) {
         <Line
           type="monotone"
           dataKey="medianMNav"
-          name="Median mNAV"
+          name="Median D.mNAV"
           stroke={COLORS.medianMNav}
           strokeWidth={2}
           dot={false}
@@ -92,7 +92,7 @@ export function MNavChart({ data }: MNavChartProps) {
         <Line
           type="monotone"
           dataKey="weightedAvgMNav"
-          name="Weighted Avg mNAV"
+          name="Wtd Avg D.mNAV"
           stroke={COLORS.weightedAvgMNav}
           strokeWidth={2}
           dot={false}
