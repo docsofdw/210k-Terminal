@@ -167,7 +167,7 @@ CREATE TABLE companies (
 
 **Manual Trigger:**
 ```bash
-curl -X GET "https://your-domain.vercel.app/api/cron/sync-sheets" \
+curl -X GET "https://terminal.utxomanagement.com/api/cron/sync-sheets" \
   -H "Authorization: Bearer YOUR_CRON_SECRET"
 ```
 

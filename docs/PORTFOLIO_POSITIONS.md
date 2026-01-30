@@ -136,7 +136,7 @@ To add new company mappings, edit `POSITION_TO_TICKER` in:
 To manually trigger a sync:
 
 ```bash
-curl -X GET "https://your-domain.vercel.app/api/cron/sync-portfolio" \
+curl -X GET "https://terminal.utxomanagement.com/api/cron/sync-portfolio" \
   -H "Authorization: Bearer YOUR_CRON_SECRET"
 ```
 

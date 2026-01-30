@@ -20,7 +20,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "210k Terminal",
   description: "Fund analytics for 210k Capital",
-  metadataBase: new URL("https://terminal.utxo.management"),
+  metadataBase: new URL("https://terminal.utxomanagement.com"),
   openGraph: {
     title: "210k Terminal",
     description: "Fund analytics for 210k Capital",

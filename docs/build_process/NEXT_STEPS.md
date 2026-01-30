@@ -16,7 +16,7 @@ This document outlines recommended improvements, testing requirements, and poten
 
 **Test manually**:
 ```bash
-curl -X GET "https://your-domain.vercel.app/api/cron/daily-snapshot" \
+curl -X GET "https://terminal.utxomanagement.com/api/cron/daily-snapshot" \
   -H "Authorization: Bearer YOUR_CRON_SECRET"
 ```
 
