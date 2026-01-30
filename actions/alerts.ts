@@ -569,6 +569,16 @@ export async function sendOnchainDigest(
                       metrics.nupl >= 0.25 ? "Optimism" :
                       metrics.nupl >= 0 ? "Hope" : "Capitulation"
 
+    const frPercent = metrics.fundingRate * 100
+    const frLabel = frPercent >= 0.05 ? "Hot" :
+                    frPercent >= 0.01 ? "Bullish" :
+                    frPercent >= 0 ? "Neutral" :
+                    frPercent >= -0.01 ? "Bearish" : "Negative"
+
+    const wmaLabel = metrics.premium200WMA >= 100 ? "Extended" :
+                     metrics.premium200WMA >= 50 ? "Healthy" :
+                     metrics.premium200WMA >= 0 ? "Near Support" : "Below"
+
     const telegramMessage = `📊 <b>On-Chain Brief</b> • ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })}
 
 <b>₿ $${metrics.btcPrice.toLocaleString(undefined, { maximumFractionDigits: 0 })}</b>
@@ -576,12 +586,12 @@ export async function sendOnchainDigest(
 <code>F&G    ${String(metrics.fearGreed).padStart(5)}  (${fgLabel})
 MVRV   ${metrics.mvrvZScore.toFixed(2).padStart(5)}  (${mvrvLabel})
 NUPL   ${((metrics.nupl * 100).toFixed(0) + "%").padStart(5)}  (${nuplLabel})
-FR     ${((metrics.fundingRate * 100).toFixed(2) + "%").padStart(5)}
-200W   ${((metrics.premium200WMA >= 0 ? "+" : "") + metrics.premium200WMA.toFixed(0) + "%").padStart(5)}</code>
+FR     ${(frPercent.toFixed(2) + "%").padStart(5)}  (${frLabel})
+200W   ${((metrics.premium200WMA >= 0 ? "+" : "") + metrics.premium200WMA.toFixed(0) + "%").padStart(5)}  (${wmaLabel})</code>
 
 <i>210k Terminal</i>`
 
-    const slackMessage = `📊 *On-Chain Brief*\n\n*BTC $${metrics.btcPrice.toLocaleString(undefined, { maximumFractionDigits: 0 })}*\n\nF&G *${metrics.fearGreed}* ${fgLabel} • MVRV *${metrics.mvrvZScore.toFixed(2)}* ${mvrvLabel}\nNUPL *${(metrics.nupl * 100).toFixed(0)}%* ${nuplLabel} • FR ${(metrics.fundingRate * 100).toFixed(3)}% • 200W ${metrics.premium200WMA >= 0 ? "+" : ""}${metrics.premium200WMA.toFixed(0)}%`
+    const slackMessage = `📊 *On-Chain Brief*\n\n*BTC $${metrics.btcPrice.toLocaleString(undefined, { maximumFractionDigits: 0 })}*\n\nF&G *${metrics.fearGreed}* (${fgLabel}) • MVRV *${metrics.mvrvZScore.toFixed(2)}* (${mvrvLabel})\nNUPL *${(metrics.nupl * 100).toFixed(0)}%* (${nuplLabel}) • FR ${frPercent.toFixed(2)}% (${frLabel}) • 200W ${metrics.premium200WMA >= 0 ? "+" : ""}${metrics.premium200WMA.toFixed(0)}% (${wmaLabel})`
 
     // Send notification
     let notificationSent = false

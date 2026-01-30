@@ -73,7 +73,7 @@ export function AddAlertDialog({ companies }: AddAlertDialogProps) {
   const [formData, setFormData] = useState({
     name: "",
     companyId: "",
-    type: "price_above",
+    type: "onchain_daily_digest",
     threshold: "",
     thresholdPercent: "",
     channel: "telegram",
@@ -113,7 +113,7 @@ export function AddAlertDialog({ companies }: AddAlertDialogProps) {
         setFormData({
           name: "",
           companyId: "",
-          type: "price_above",
+          type: "onchain_daily_digest",
           threshold: "",
           thresholdPercent: "",
           channel: "telegram",
@@ -178,8 +178,8 @@ export function AddAlertDialog({ companies }: AddAlertDialogProps) {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Company Alerts</div>
-                {alertTypes.filter(t => t.category === "company").map(type => (
+                <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Daily Digest</div>
+                {alertTypes.filter(t => t.category === "digest").map(type => (
                   <SelectItem key={type.value} value={type.value}>
                     {type.label}
                   </SelectItem>
@@ -190,8 +190,8 @@ export function AddAlertDialog({ companies }: AddAlertDialogProps) {
                     {type.label}
                   </SelectItem>
                 ))}
-                <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground mt-2">Daily Digest</div>
-                {alertTypes.filter(t => t.category === "digest").map(type => (
+                <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground mt-2">Company Alerts</div>
+                {alertTypes.filter(t => t.category === "company").map(type => (
                   <SelectItem key={type.value} value={type.value}>
                     {type.label}
                   </SelectItem>

@@ -144,11 +144,11 @@ Current: 75
 
 ₿ $98,543
 
-😱 F&G     72  Greed
-📈 MVRV   2.45  Fair
-💰 NUPL   48%  Optimism
-⚡ FR       0.013%
-📏 200W   +156%
+F&G       26  (Fear)
+MVRV    1.12  (Fair)
+NUPL     37%  (Optimism)
+FR     0.01%  (Neutral)
+200W    +54%  (Healthy)
 
 210k Terminal
 ```
@@ -278,8 +278,74 @@ On-chain alerts monitor Bitcoin network metrics from Bitcoin Magazine Pro API.
 | MVRV Z-Score | Market value vs realized value | -1 to 7+ |
 | NUPL | Net unrealized profit/loss | -0.5 to 1.0 |
 | Funding Rate | Perpetual futures funding | -0.1% to 0.1% |
+| 200 Week MA | Price premium/discount to 200W moving average | -20% to 200%+ |
 
-### Example Alert Configurations
+---
+
+## On-Chain Metric Interpretations
+
+The Daily Digest and threshold alerts use these labels to provide context.
+
+### Fear & Greed Index
+
+| Value | Label | Interpretation |
+|-------|-------|----------------|
+| 80-100 | Extreme Greed | Market euphoria, potential top |
+| 60-80 | Greed | Bullish sentiment |
+| 40-60 | Neutral | Balanced market |
+| 20-40 | Fear | Bearish sentiment |
+| 0-20 | Extreme Fear | Capitulation, potential buy signal |
+
+### MVRV Z-Score
+
+Measures market value relative to realized value (aggregate cost basis).
+
+| Z-Score | Label | Interpretation |
+|---------|-------|----------------|
+| ≥ 7 | Overvalued | Extreme overvaluation, sell zone |
+| 5-7 | High | Overvalued territory |
+| 3-5 | Fair+ | Fairly valued, upper range |
+| 0-3 | Fair | Fairly valued, normal range |
+| < 0 | Undervalued | Below cost basis, accumulation zone |
+
+### NUPL (Net Unrealized Profit/Loss)
+
+Shows aggregate profit/loss state of all holders.
+
+| NUPL | Label | Interpretation |
+|------|-------|----------------|
+| ≥ 0.75 | Euphoria | Most holders in profit, distribution phase |
+| 0.50-0.75 | Belief | Strong conviction, bull market |
+| 0.25-0.50 | Optimism | Growing confidence |
+| 0-0.25 | Hope | Recovery phase |
+| < 0 | Capitulation | Most holders at loss, accumulation zone |
+
+### Funding Rate
+
+Average perpetual futures funding rate across major exchanges.
+
+| Rate | Label | Interpretation |
+|------|-------|----------------|
+| ≥ 0.05% | Hot | Overleveraged longs, potential correction |
+| 0.01-0.05% | Bullish | Longs paying shorts, bullish bias |
+| 0-0.01% | Neutral | Balanced market |
+| -0.01-0% | Bearish | Shorts paying longs |
+| < -0.01% | Negative | Strong bearish bias |
+
+### 200 Week Moving Average Premium
+
+Distance from long-term support level.
+
+| Premium | Label | Interpretation |
+|---------|-------|----------------|
+| ≥ 100% | Extended | Far above support, elevated risk |
+| 50-100% | Healthy | Normal bull market range |
+| 0-50% | Near Support | Closer to long-term support |
+| < 0% | Below | Extremely rare, max buying opportunity |
+
+---
+
+## Example Alert Configurations
 
 **Extreme Fear Alert**
 - Type: `fear_greed_below`
@@ -298,5 +364,9 @@ On-chain alerts monitor Bitcoin network metrics from Bitcoin Magazine Pro API.
 
 **Overleveraged Longs**
 - Type: `funding_rate_above`
-- Threshold: 0.03 (0.03%)
+- Threshold: 0.05
 - Purpose: Warning when longs are paying high premiums
+
+**Near Support Alert**
+- Type: 200W premium (via daily digest monitoring)
+- Purpose: Track when price approaches long-term support
