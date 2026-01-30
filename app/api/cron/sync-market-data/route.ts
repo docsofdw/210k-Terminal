@@ -1,10 +1,12 @@
 /**
  * Sync Market Data Cron Job
  *
- * Fetches stock quotes from MarketData.app (US) and Twelve Data (International)
+ * Fetches stock quotes from MarketData.app (US) and Yahoo Finance (International)
  * and updates the companies table with fresh prices and calculated metrics.
  *
- * Schedule: Every 15 minutes during market hours
+ * Fallback: If API fails for a company, falls back to Google Sheets data.
+ *
+ * Schedule: Every 15 minutes
  * Endpoint: /api/cron/sync-market-data
  */
 
@@ -17,8 +19,9 @@ import {
   calculateHighDelta,
   calculateAvgDelta
 } from "@/lib/services/calculation-service"
+import { getSheetDataAsBackup, type SheetCompanyData } from "@/lib/api/google-sheets"
 import { NextRequest, NextResponse } from "next/server"
-import { eq, isNotNull } from "drizzle-orm"
+import { eq } from "drizzle-orm"
 
 export const dynamic = "force-dynamic"
 export const maxDuration = 120 // 2 minutes for batch processing
@@ -89,32 +92,82 @@ export async function GET(request: NextRequest) {
     const quotes = await fetchQuotesBatch(tickerList)
     console.log(`[sync-market-data] Received ${quotes.size} quotes`)
 
+    // Track companies that need fallback
+    const companiesNeedingFallback: typeof allCompanies = []
+
+    // First pass: identify companies without API quotes
+    for (const company of allCompanies) {
+      const ticker = company.yahooTicker || company.ticker
+      const quote = quotes.get(ticker) || quotes.get(ticker.split(".")[0])
+      if (!quote) {
+        companiesNeedingFallback.push(company)
+      }
+    }
+
+    // Fetch Google Sheets backup data if needed
+    let sheetsBackup: Map<string, SheetCompanyData> | null = null
+    if (companiesNeedingFallback.length > 0) {
+      console.log(`[sync-market-data] ${companiesNeedingFallback.length} companies need fallback, fetching from Google Sheets...`)
+      sheetsBackup = await getSheetDataAsBackup()
+      if (sheetsBackup) {
+        console.log(`[sync-market-data] Google Sheets backup loaded with ${sheetsBackup.size} companies`)
+      } else {
+        console.warn(`[sync-market-data] Failed to load Google Sheets backup`)
+      }
+    }
+
     // Update each company
     let updated = 0
     let errors = 0
     let skipped = 0
+    let fallbackUsed = 0
     const errorDetails: string[] = []
+    const fallbackTickers: string[] = []
 
     for (const company of allCompanies) {
       const ticker = company.yahooTicker || company.ticker
-      const quote = quotes.get(ticker)
+      const quote = quotes.get(ticker) || quotes.get(ticker.split(".")[0])
 
+      // If no API quote, try Google Sheets fallback
       if (!quote) {
-        // Try without suffix for US stocks
-        const baseTicker = ticker.split(".")[0]
-        const altQuote = quotes.get(baseTicker)
+        if (sheetsBackup) {
+          const sheetData = sheetsBackup.get(company.ticker.toUpperCase())
+          if (sheetData && sheetData.price) {
+            // Update from Google Sheets
+            try {
+              await db.update(companies)
+                .set({
+                  price: sheetData.price.toString(),
+                  priceChange1d: sheetData.priceChange1d?.toString() || null,
+                  marketCapUsd: sheetData.marketCapUsd?.toString() || null,
+                  dilutedMarketCapUsd: sheetData.dilutedMarketCapUsd?.toString() || null,
+                  btcNavUsd: sheetData.btcNavUsd?.toString() || null,
+                  enterpriseValueUsd: sheetData.enterpriseValueUsd?.toString() || null,
+                  dilutedEvUsd: sheetData.dilutedEvUsd?.toString() || null,
+                  basicMNav: sheetData.basicMNav?.toString() || null,
+                  dilutedMNav: sheetData.dilutedMNav?.toString() || null,
+                  priceAt1xDilutedMNav: sheetData.priceAt1xDilutedMNav?.toString() || null,
+                  high1y: sheetData.high1y?.toString() || null,
+                  avg200d: sheetData.avg200d?.toString() || null,
+                  dataSource: "google_sheets_fallback",
+                  lastQuoteAt: new Date(),
+                  updatedAt: new Date()
+                })
+                .where(eq(companies.id, company.id))
 
-        if (!altQuote) {
-          skipped++
-          continue
+              fallbackUsed++
+              fallbackTickers.push(company.ticker)
+              continue
+            } catch (err) {
+              console.error(`[sync-market-data] Fallback update failed for ${company.ticker}:`, err)
+            }
+          }
         }
-      }
-
-      const q = quote || quotes.get(ticker.split(".")[0])
-      if (!q) {
         skipped++
         continue
       }
+
+      const q = quote
 
       try {
         // Parse existing data
@@ -191,17 +244,22 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    console.log(`[sync-market-data] Completed: ${updated} updated, ${skipped} skipped, ${errors} errors`)
+    console.log(`[sync-market-data] Completed: ${updated} updated (API), ${fallbackUsed} updated (fallback), ${skipped} skipped, ${errors} errors`)
+    if (fallbackTickers.length > 0) {
+      console.log(`[sync-market-data] Fallback used for: ${fallbackTickers.join(", ")}`)
+    }
 
     return NextResponse.json({
       success: true,
       updated,
+      fallbackUsed,
       skipped,
       errors,
       total: allCompanies.length,
       btcPrice,
       quotesReceived: quotes.size,
       timestamp: new Date().toISOString(),
+      ...(fallbackTickers.length > 0 && { fallbackTickers }),
       ...(errorDetails.length > 0 && { errorDetails: errorDetails.slice(0, 10) })
     })
 

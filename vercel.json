@@ -13,10 +13,6 @@
       "schedule": "0 */4 * * *"
     },
     {
-      "path": "/api/cron/sync-sheets",
-      "schedule": "0 */4 * * *"
-    },
-    {
       "path": "/api/cron/sync-market-data",
       "schedule": "*/15 * * * *"
     },
