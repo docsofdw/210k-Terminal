@@ -60,6 +60,10 @@ export function AppSidebar({
           {
             title: "Comps Table",
             url: "/dashboard/comps"
+          },
+          {
+            title: "Derivatives Simulator",
+            url: "/dashboard/derivatives"
           }
         ]
       },

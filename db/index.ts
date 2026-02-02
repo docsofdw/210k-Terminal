@@ -18,6 +18,7 @@ import {
 import { fundPositions } from "./schema/fund-positions"
 import { holdingsSnapshots } from "./schema/holdings-snapshots"
 import { portfolioPositions } from "./schema/portfolio-positions"
+import { savedStrategies } from "./schema/saved-strategies"
 import { stockPrices } from "./schema/stock-prices"
 
 config({ path: ".env.local" })
@@ -44,6 +45,9 @@ const dbSchema = {
 
   // Portfolio
   portfolioPositions,
+
+  // Saved strategies
+  savedStrategies,
 
   // Fund positions (from Google Sheet)
   fundPositions,
