@@ -15,6 +15,49 @@ export interface ClearStreetPosition {
   symbol: string // OCC symbol for options, ticker for equities
 }
 
+/**
+ * Position-level P&L data from /pnl-details endpoint
+ * Contains real-time pricing and P&L calculated by Clear Street
+ */
+export interface ClearStreetPnlDetail {
+  timestamp: number
+  entity_id: string
+  account_id: string
+  account_number: string
+  symbol: string // OCC symbol
+  symbol_description: string // Human readable description
+
+  // Pricing
+  price: number // Current price
+  sod_price: number // Start of day price (mark-to-market cost basis)
+
+  // P&L
+  day_pnl: number
+  unrealized_pnl: number
+  realized_pnl: number
+  total_pnl: number
+  overnight_pnl: number
+
+  // Market Value
+  net_market_value: number
+  gross_market_value: number
+  sod_market_value: number
+
+  // Position
+  quantity: string
+  sod_quantity: string
+  bought_quantity: string
+  sold_quantity: string
+  buys: number
+  sells: number
+
+  // Fees
+  total_fees: number
+
+  // Underlying
+  underlier: string
+}
+
 export interface ClearStreetPnlSummary {
   account_id: string
   account_number: string
@@ -82,7 +125,6 @@ export interface EnrichedPosition {
   accountNumber: string
   clearStreetSymbol: string // Original symbol from CS
   quantity: number // Signed (negative = short)
-  averageCost: number
 
   // Parsed from OCC symbol (null if equity)
   underlying: string
@@ -90,8 +132,11 @@ export interface EnrichedPosition {
   strike: number | null
   optionType: "call" | "put" | null
 
-  // From Polygon.io (null if unavailable)
-  currentPrice: number | null // Mid price
+  // Pricing from Clear Street /pnl-details
+  currentPrice: number // Current price from Clear Street
+  sodPrice: number // Start of day price (mark-to-market cost basis)
+
+  // Greeks from Polygon.io (null if unavailable)
   bid: number | null
   ask: number | null
   iv: number | null
@@ -100,11 +145,23 @@ export interface EnrichedPosition {
   theta: number | null
   vega: number | null
 
-  // Calculated values
-  marketValue: number // quantity * currentPrice * multiplier
-  costBasis: number // quantity * averageCost * multiplier
-  unrealizedPnl: number // marketValue - costBasis
-  unrealizedPnlPercent: number
+  // P&L from Clear Street (calculated using mark-to-market)
+  marketValue: number // net_market_value from Clear Street
+  sodMarketValue: number // sod_market_value from Clear Street
+  dayPnl: number // Intraday P&L
+  unrealizedPnl: number // Unrealized P&L
+  realizedPnl: number // Realized P&L
+  totalPnl: number // Total P&L (realized + unrealized)
+  overnightPnl: number // Overnight P&L
+  totalFees: number // Trading fees
+
+  // Trade activity
+  boughtQuantity: number
+  soldQuantity: number
+  buys: number
+  sells: number
+
+  // Calculated Greek exposures
   deltaExposure: number // quantity * delta * multiplier
   gammaExposure: number
   thetaExposure: number
@@ -127,7 +184,11 @@ export interface ClearStreetPositionsResponse {
     optionsCount: number
     equitiesCount: number
     totalMarketValue: number
+    totalDayPnl: number
     totalUnrealizedPnl: number
+    totalRealizedPnl: number
+    totalPnl: number
+    totalFees: number
     totalDelta: number
     totalGamma: number
     totalTheta: number

@@ -13,9 +13,9 @@ Dashboard for viewing Clear Street derivative positions with real-time Greeks en
 ├─────────────────────────────────────────────────────────────────────┤
 │  Clear Street API          Polygon.io API                           │
 │  ┌─────────────────┐       ┌─────────────────┐                      │
-│  │ /holdings       │       │ /options/chain  │                      │
-│  │ /pnl-summary    │       │ Greeks, IV, Bid/│                      │
-│  │ (positions,qty) │       │ Ask prices      │                      │
+│  │ /pnl-details    │       │ /options/chain  │                      │
+│  │ (positions,     │       │ Greeks, IV, Bid/│                      │
+│  │  pricing, P&L)  │       │ Ask prices      │                      │
 │  └────────┬────────┘       └────────┬────────┘                      │
 │           │                         │                                │
 │           └────────────┬────────────┘                                │
@@ -58,10 +58,32 @@ Dashboard for viewing Clear Street derivative positions with real-time Greeks en
 | Endpoint | Status | Data Returned |
 |----------|--------|---------------|
 | `GET /studio/v2/accounts` | ✅ Working | Account info |
-| `GET /studio/v2/accounts/{id}/holdings` | ✅ Working | Positions (symbol, quantity) - **NO cost basis** |
+| `GET /studio/v2/accounts/{id}/pnl-details` | ✅ Working | **Primary endpoint** - Position-level pricing and P&L |
 | `GET /studio/v2/accounts/{id}/pnl-summary` | ✅ Working | Account-level P&L (day, unrealized, realized) |
-| `GET /studio/v2/accounts/{id}/positions` | ❌ 403 | Would have cost basis |
+| `GET /studio/v2/accounts/{id}/holdings` | ✅ Working | Basic positions (symbol, quantity only) |
+| `POST /studio/v2/entities/{id}/activity` | ❌ 403 | Trade history with cost basis (requires separate access) |
 | `GET /studio/v2/accounts/{id}/trades` | ❌ 403 | Trade history |
+
+### `/pnl-details` Data (Primary Endpoint)
+
+The `/pnl-details` endpoint provides comprehensive position-level data:
+
+| Field | Description |
+|-------|-------------|
+| `price` | Current mark-to-market price |
+| `sod_price` | Start-of-day price (previous close) |
+| `day_pnl` | Today's P&L |
+| `unrealized_pnl` | Unrealized P&L |
+| `realized_pnl` | Realized P&L from closed positions |
+| `total_pnl` | Combined P&L |
+| `overnight_pnl` | Overnight P&L |
+| `net_market_value` | Current market value |
+| `sod_market_value` | Start-of-day market value |
+| `quantity` | Current position size |
+| `bought_quantity` / `sold_quantity` | Intraday trade activity |
+| `total_fees` | Accumulated fees |
+
+**Note:** Clear Street uses mark-to-market methodology - cost basis resets to prior night's close daily.
 
 ### Environment Variables
 
@@ -72,20 +94,6 @@ CLEAR_STREET_ACCOUNT_ID=      # Account ID (e.g., 116206)
 CLEAR_STREET_ENTITY_ID=       # Entity ID (e.g., 8276)
 CLEAR_STREET_ENVIRONMENT=     # "production" or "sandbox"
 ```
-
-## Pending: Waiting for Clear Street
-
-**Requested from Clear Street team (2026-02-02):**
-
-1. **`/positions` endpoint access** - Need position-level cost basis
-   - Currently showing $0.00 avg cost for all positions
-   - Cannot calculate true P&L per position without this
-
-2. **`/trades` endpoint access** - Trade history
-   - Would enable reconstructing cost basis from trades
-   - Useful for performance tracking and tax reporting
-
-**Current workaround:** Account-level P&L (Day P&L, Unrealized P&L) is accurate because Clear Street calculates it server-side. Per-position P&L shows as "Mkt Value" since we don't have cost basis.
 
 ## Greeks Enrichment (Polygon.io)
 
@@ -111,12 +119,14 @@ The unified strategy builder allows:
 ## Data Flow
 
 ```
-1. Page loads → Server action fetches Clear Street data
-2. Holdings + P&L summary returned
-3. Position enrichment service groups by underlying/expiration
-4. Polygon.io options chains fetched for each group
+1. Page loads → Server action calls getClearStreetPositions()
+2. fetchPnlDetails() returns positions with pricing and P&L from Clear Street
+3. Position enrichment service groups options by underlying/expiration
+4. Polygon.io options chains fetched for each group (for Greeks)
 5. Positions matched to contracts, Greeks extracted
-6. Enriched positions displayed in table
+6. Enriched positions displayed in table with:
+   - Pricing/P&L from Clear Street
+   - Greeks (delta, gamma, theta, vega, IV) from Polygon
 7. Auto-refresh every 5 minutes
 ```
 
@@ -133,14 +143,14 @@ Displays P&L cards from Clear Street:
 ### PositionsTable
 Shows all option positions with:
 - Position details (underlying, strike, expiration, type)
-- Quantity
-- Avg Cost (currently $0.00 - pending API access)
-- Current price (from Polygon)
-- Market Value
-- Delta exposure
-- IV
-- Days to expiration
-- **Totals row** with aggregate values
+- Quantity (green for long, red for short)
+- SOD price (start-of-day mark-to-market price)
+- Current price
+- Day P&L (with color coding)
+- Delta exposure (formatted as K notation, e.g., -12.8K)
+- IV (implied volatility %)
+- Days to expiration (with color-coded badges)
+- **Totals row** with aggregate Day P&L and Delta
 
 ### UnifiedBuilder
 Strategy builder for analyzing positions:

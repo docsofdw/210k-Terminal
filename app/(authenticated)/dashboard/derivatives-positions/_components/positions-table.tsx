@@ -58,6 +58,16 @@ function formatIV(value: number | null): string {
   return `${(value * 100).toFixed(0)}%`
 }
 
+function formatDelta(value: number | null): string {
+  if (value === null) return "N/A"
+  const absValue = Math.abs(value)
+  const sign = value >= 0 ? "+" : "-"
+  if (absValue >= 1000) {
+    return `${sign}${(absValue / 1000).toFixed(1)}K`
+  }
+  return `${sign}${absValue.toFixed(0)}`
+}
+
 export function PositionsTable({
   positions,
   onAddToBuilder,
@@ -72,6 +82,8 @@ export function PositionsTable({
   const totals = {
     contracts: optionPositions.reduce((sum, p) => sum + p.quantity, 0),
     marketValue: optionPositions.reduce((sum, p) => sum + p.marketValue, 0),
+    dayPnl: optionPositions.reduce((sum, p) => sum + p.dayPnl, 0),
+    unrealizedPnl: optionPositions.reduce((sum, p) => sum + p.unrealizedPnl, 0),
     delta: optionPositions.reduce((sum, p) => sum + p.deltaExposure, 0),
     theta: optionPositions.reduce((sum, p) => sum + p.thetaExposure, 0),
     gamma: optionPositions.reduce((sum, p) => sum + p.gammaExposure, 0),
@@ -131,9 +143,9 @@ export function PositionsTable({
               <TableRow>
                 <TableHead className="w-[140px]">Position</TableHead>
                 <TableHead className="text-right">Qty</TableHead>
-                <TableHead className="text-right">Avg Cost</TableHead>
+                <TableHead className="text-right">SOD</TableHead>
                 <TableHead className="text-right">Current</TableHead>
-                <TableHead className="text-right">Mkt Value</TableHead>
+                <TableHead className="text-right">Day P&L</TableHead>
                 <TableHead className="text-right">Delta</TableHead>
                 <TableHead className="text-right">IV</TableHead>
                 <TableHead className="text-right">DTE</TableHead>
@@ -185,17 +197,21 @@ export function PositionsTable({
                       {isLong ? "+" : ""}
                       {position.quantity}
                     </TableCell>
-                    <TableCell className="text-right">
-                      ${position.averageCost.toFixed(2)}
+                    <TableCell className="text-right text-muted-foreground">
+                      ${position.sodPrice.toFixed(2)}
                     </TableCell>
                     <TableCell className="text-right">
-                      {position.currentPrice !== null
-                        ? `$${position.currentPrice.toFixed(2)}`
-                        : "N/A"}
+                      ${position.currentPrice.toFixed(2)}
                     </TableCell>
                     <TableCell className="text-right">
-                      <span className="font-medium text-green-500">
-                        {formatCurrency(position.marketValue)}
+                      <span
+                        className={cn(
+                          "font-medium",
+                          position.dayPnl > 0 && "text-green-500",
+                          position.dayPnl < 0 && "text-red-500"
+                        )}
+                      >
+                        {formatCurrency(position.dayPnl)}
                       </span>
                     </TableCell>
                     <TableCell className="text-right">
@@ -208,14 +224,13 @@ export function PositionsTable({
                                 position.deltaExposure < 0 && "text-red-500"
                               )}
                             >
-                              {position.deltaExposure > 0 ? "+" : ""}
-                              {position.deltaExposure.toFixed(0)}
+                              {formatDelta(position.deltaExposure)}
                             </span>
                           </TooltipTrigger>
                           <TooltipContent>
                             <p>Contract Delta: {formatGreek(position.delta)}</p>
                             <p>
-                              Position Delta: {position.deltaExposure.toFixed(0)}
+                              Position Delta: {position.deltaExposure.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                             </p>
                           </TooltipContent>
                         </Tooltip>
@@ -283,8 +298,14 @@ export function PositionsTable({
                 <TableCell className="text-right text-muted-foreground">
                   —
                 </TableCell>
-                <TableCell className="text-right text-green-500">
-                  {formatCurrency(totals.marketValue)}
+                <TableCell
+                  className={cn(
+                    "text-right font-medium",
+                    totals.dayPnl > 0 && "text-green-500",
+                    totals.dayPnl < 0 && "text-red-500"
+                  )}
+                >
+                  {formatCurrency(totals.dayPnl)}
                 </TableCell>
                 <TableCell
                   className={cn(
@@ -293,8 +314,7 @@ export function PositionsTable({
                     totals.delta < 0 && "text-red-500"
                   )}
                 >
-                  {totals.delta > 0 ? "+" : ""}
-                  {totals.delta.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                  {formatDelta(totals.delta)}
                 </TableCell>
                 <TableCell className="text-right text-muted-foreground">
                   —
@@ -359,8 +379,7 @@ export function PositionsSummaryRow({ positions }: PositionsSummaryRowProps) {
             totalDelta < 0 && "text-red-500"
           )}
         >
-          {totalDelta > 0 ? "+" : ""}
-          {totalDelta.toFixed(0)}
+          {formatDelta(totalDelta)}
         </span>
       </div>
       <div className="flex items-center gap-2">

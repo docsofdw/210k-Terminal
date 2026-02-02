@@ -9,6 +9,7 @@
 
 import { requireAuth } from "@/lib/auth/permissions"
 import {
+  fetchPnlDetails,
   fetchPositions,
   fetchPnlSummary,
   fetchTrades,
@@ -31,6 +32,9 @@ import type {
 
 /**
  * Get all Clear Street positions, enriched with Greeks from Polygon
+ *
+ * Uses /pnl-details endpoint for pricing and P&L data,
+ * then enriches with Greeks from Polygon.io
  */
 export async function getClearStreetPositions(): Promise<{
   isSuccess: boolean
@@ -40,10 +44,10 @@ export async function getClearStreetPositions(): Promise<{
   try {
     await requireAuth()
 
-    // Fetch positions from Clear Street
-    const positions = await fetchPositions()
+    // Fetch position-level P&L from Clear Street (includes pricing)
+    const pnlDetails = await fetchPnlDetails()
 
-    if (positions.length === 0) {
+    if (pnlDetails.length === 0) {
       return {
         isSuccess: true,
         data: {
@@ -53,7 +57,11 @@ export async function getClearStreetPositions(): Promise<{
             optionsCount: 0,
             equitiesCount: 0,
             totalMarketValue: 0,
+            totalDayPnl: 0,
             totalUnrealizedPnl: 0,
+            totalRealizedPnl: 0,
+            totalPnl: 0,
+            totalFees: 0,
             totalDelta: 0,
             totalGamma: 0,
             totalTheta: 0,
@@ -66,7 +74,7 @@ export async function getClearStreetPositions(): Promise<{
 
     // Enrich with Greeks from Polygon
     const { positions: enrichedPositions, errors } =
-      await enrichPositionsWithGreeks(positions)
+      await enrichPositionsWithGreeks(pnlDetails)
 
     // Log any enrichment errors (but don't fail the request)
     if (errors.length > 0) {
@@ -95,6 +103,7 @@ export async function getClearStreetPositions(): Promise<{
 
 /**
  * Get Clear Street positions without Greek enrichment (faster)
+ * Uses /pnl-details for pricing and P&L, skips Polygon Greeks
  */
 export async function getClearStreetPositionsRaw(): Promise<{
   isSuccess: boolean
@@ -104,22 +113,22 @@ export async function getClearStreetPositionsRaw(): Promise<{
   try {
     await requireAuth()
 
-    const positions = await fetchPositions()
+    const pnlDetails = await fetchPnlDetails()
 
-    // Convert to enriched format but without actual enrichment
-    const enrichedPositions: EnrichedPosition[] = positions.map((pos) => {
+    // Convert to enriched format with Clear Street data only (no Polygon Greeks)
+    const enrichedPositions: EnrichedPosition[] = pnlDetails.map((pos) => {
       const quantity = parseFloat(pos.quantity)
       return {
         accountId: pos.account_id,
         accountNumber: pos.account_number,
         clearStreetSymbol: pos.symbol,
         quantity,
-        averageCost: pos.average_cost,
-        underlying: pos.symbol.split(/\d/)[0].trim(), // Basic underlying extraction
+        underlying: pos.underlier || pos.symbol.split(/\d/)[0].trim(),
         expiration: null,
         strike: null,
         optionType: null,
-        currentPrice: null,
+        currentPrice: pos.price,
+        sodPrice: pos.sod_price,
         bid: null,
         ask: null,
         iv: null,
@@ -127,15 +136,23 @@ export async function getClearStreetPositionsRaw(): Promise<{
         gamma: null,
         theta: null,
         vega: null,
-        marketValue: 0,
-        costBasis: quantity * pos.average_cost * 100,
-        unrealizedPnl: 0,
-        unrealizedPnlPercent: 0,
+        marketValue: pos.net_market_value,
+        sodMarketValue: pos.sod_market_value,
+        dayPnl: pos.day_pnl,
+        unrealizedPnl: pos.unrealized_pnl,
+        realizedPnl: pos.realized_pnl,
+        totalPnl: pos.total_pnl,
+        overnightPnl: pos.overnight_pnl,
+        totalFees: pos.total_fees,
+        boughtQuantity: parseFloat(pos.bought_quantity) || 0,
+        soldQuantity: parseFloat(pos.sold_quantity) || 0,
+        buys: pos.buys,
+        sells: pos.sells,
         deltaExposure: 0,
         gammaExposure: 0,
         thetaExposure: 0,
         vegaExposure: 0,
-        isOption: true,
+        isOption: pos.symbol.includes(" "), // OCC symbols have spaces
         multiplier: 100,
         source: "clear-street",
         enrichedAt: null

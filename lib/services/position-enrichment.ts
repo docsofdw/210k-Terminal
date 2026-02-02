@@ -1,12 +1,13 @@
 /**
  * Position Enrichment Service
  *
- * Enriches Clear Street positions with Greeks data from Polygon.io.
- * Groups positions by underlying and expiration to minimize API calls.
+ * Enriches Clear Street positions with:
+ * - Pricing and P&L from Clear Street /pnl-details endpoint
+ * - Greeks from Polygon.io options chains
  */
 
 import type {
-  ClearStreetPosition,
+  ClearStreetPnlDetail,
   EnrichedPosition
 } from "@/types/clear-street"
 import type { OptionsChain, OptionContract } from "@/types/derivatives"
@@ -18,7 +19,7 @@ import { getOptionsChain } from "@/lib/api/polygon-options"
 interface PositionGroup {
   underlying: string
   expiration: string
-  positions: ClearStreetPosition[]
+  positions: ClearStreetPnlDetail[]
 }
 
 interface EnrichmentResult {
@@ -31,12 +32,12 @@ interface EnrichmentResult {
 /**
  * Group positions by underlying and expiration for efficient API calls
  */
-function groupPositions(positions: ClearStreetPosition[]): {
+function groupPositions(positions: ClearStreetPnlDetail[]): {
   optionGroups: PositionGroup[]
-  equities: ClearStreetPosition[]
+  equities: ClearStreetPnlDetail[]
 } {
   const groups = new Map<string, PositionGroup>()
-  const equities: ClearStreetPosition[] = []
+  const equities: ClearStreetPnlDetail[] = []
 
   for (const position of positions) {
     const parsed = parseSymbol(position.symbol)
@@ -71,7 +72,7 @@ function groupPositions(positions: ClearStreetPosition[]): {
  * Find the matching contract in an options chain for a position
  */
 function findMatchingContract(
-  position: ClearStreetPosition,
+  position: ClearStreetPnlDetail,
   chain: OptionsChain
 ): OptionContract | null {
   const parsed = parseOccSymbol(position.symbol)
@@ -80,7 +81,6 @@ function findMatchingContract(
   const contracts = parsed.type === "call" ? chain.calls : chain.puts
 
   // Find contract with matching strike
-  // Allow small tolerance for floating point comparison
   const contract = contracts.find(
     (c) => Math.abs(c.strike - parsed.strike) < 0.01
   )
@@ -91,33 +91,23 @@ function findMatchingContract(
 // ============ Enrichment Logic ============
 
 /**
- * Enrich a single option position with data from a matched contract
+ * Enrich a single option position with Clear Street P&L and Polygon Greeks
  */
 function enrichOptionPosition(
-  position: ClearStreetPosition,
+  position: ClearStreetPnlDetail,
   contract: OptionContract | null,
   parsed: ReturnType<typeof parseOccSymbol>
 ): EnrichedPosition {
   const quantity = parseFloat(position.quantity)
-  const averageCost = position.average_cost
-  const multiplier = 100 // Options have 100 share multiplier
+  const multiplier = 100
 
-  // Calculate current price from contract (use mid if available)
-  const currentPrice = contract?.mid ?? contract?.last ?? null
-
-  // Calculate market value and P&L
-  const marketValue = currentPrice !== null ? quantity * currentPrice * multiplier : 0
-  const costBasis = quantity * averageCost * multiplier
-  const unrealizedPnl = currentPrice !== null ? marketValue - costBasis : 0
-  const unrealizedPnlPercent =
-    costBasis !== 0 ? (unrealizedPnl / Math.abs(costBasis)) * 100 : 0
-
-  // Calculate Greek exposures (multiply by quantity and multiplier)
+  // Greeks from Polygon (null if unavailable)
   const delta = contract?.delta ?? null
   const gamma = contract?.gamma ?? null
   const theta = contract?.theta ?? null
   const vega = contract?.vega ?? null
 
+  // Calculate Greek exposures
   const deltaExposure = delta !== null ? quantity * delta * multiplier : 0
   const gammaExposure = gamma !== null ? quantity * gamma * multiplier : 0
   const thetaExposure = theta !== null ? quantity * theta * multiplier : 0
@@ -128,12 +118,18 @@ function enrichOptionPosition(
     accountNumber: position.account_number,
     clearStreetSymbol: position.symbol,
     quantity,
-    averageCost,
+
+    // Parsed option details
     underlying: parsed!.underlying,
     expiration: parsed!.expiration,
     strike: parsed!.strike,
     optionType: parsed!.type,
-    currentPrice,
+
+    // Pricing from Clear Street
+    currentPrice: position.price,
+    sodPrice: position.sod_price,
+
+    // Greeks from Polygon
     bid: contract?.bid ?? null,
     ask: contract?.ask ?? null,
     iv: contract?.iv ?? null,
@@ -141,64 +137,92 @@ function enrichOptionPosition(
     gamma,
     theta,
     vega,
-    marketValue,
-    costBasis,
-    unrealizedPnl,
-    unrealizedPnlPercent,
+
+    // P&L from Clear Street (mark-to-market)
+    marketValue: position.net_market_value,
+    sodMarketValue: position.sod_market_value,
+    dayPnl: position.day_pnl,
+    unrealizedPnl: position.unrealized_pnl,
+    realizedPnl: position.realized_pnl,
+    totalPnl: position.total_pnl,
+    overnightPnl: position.overnight_pnl,
+    totalFees: position.total_fees,
+
+    // Trade activity
+    boughtQuantity: parseFloat(position.bought_quantity) || 0,
+    soldQuantity: parseFloat(position.sold_quantity) || 0,
+    buys: position.buys,
+    sells: position.sells,
+
+    // Greek exposures
     deltaExposure,
     gammaExposure,
     thetaExposure,
     vegaExposure,
+
+    // Metadata
     isOption: true,
     multiplier,
     source: "clear-street",
     enrichedAt: contract ? new Date() : null,
-    error: contract ? undefined : "Could not find matching contract in options chain"
+    error: contract ? undefined : "Could not find matching contract for Greeks"
   }
 }
 
 /**
  * Enrich an equity position (no Greeks)
  */
-function enrichEquityPosition(position: ClearStreetPosition): EnrichedPosition {
+function enrichEquityPosition(position: ClearStreetPnlDetail): EnrichedPosition {
   const quantity = parseFloat(position.quantity)
-  const averageCost = position.average_cost
   const multiplier = 1
-
-  // For equities, we don't have real-time price from Clear Street
-  // Would need to fetch from another source (e.g., Polygon quotes)
-  const currentPrice = null
-  const marketValue = 0
-  const costBasis = quantity * averageCost * multiplier
-  const unrealizedPnl = 0
-  const unrealizedPnlPercent = 0
 
   return {
     accountId: position.account_id,
     accountNumber: position.account_number,
     clearStreetSymbol: position.symbol,
     quantity,
-    averageCost,
-    underlying: position.symbol,
+
+    underlying: position.underlier || position.symbol,
     expiration: null,
     strike: null,
     optionType: null,
-    currentPrice,
+
+    // Pricing from Clear Street
+    currentPrice: position.price,
+    sodPrice: position.sod_price,
+
+    // No Greeks for equities
     bid: null,
     ask: null,
     iv: null,
-    delta: quantity > 0 ? 1 : -1, // Delta of 1 for long equity, -1 for short
+    delta: quantity > 0 ? 1 : -1,
     gamma: null,
     theta: null,
     vega: null,
-    marketValue,
-    costBasis,
-    unrealizedPnl,
-    unrealizedPnlPercent,
-    deltaExposure: quantity, // Each share = 1 delta
+
+    // P&L from Clear Street
+    marketValue: position.net_market_value,
+    sodMarketValue: position.sod_market_value,
+    dayPnl: position.day_pnl,
+    unrealizedPnl: position.unrealized_pnl,
+    realizedPnl: position.realized_pnl,
+    totalPnl: position.total_pnl,
+    overnightPnl: position.overnight_pnl,
+    totalFees: position.total_fees,
+
+    // Trade activity
+    boughtQuantity: parseFloat(position.bought_quantity) || 0,
+    soldQuantity: parseFloat(position.sold_quantity) || 0,
+    buys: position.buys,
+    sells: position.sells,
+
+    // Greek exposures
+    deltaExposure: quantity,
     gammaExposure: 0,
     thetaExposure: 0,
     vegaExposure: 0,
+
+    // Metadata
     isOption: false,
     multiplier,
     source: "clear-street",
@@ -210,13 +234,13 @@ function enrichEquityPosition(position: ClearStreetPosition): EnrichedPosition {
 // ============ Main Enrichment Function ============
 
 /**
- * Enrich all positions with Greeks from Polygon.io
+ * Enrich positions with Greeks from Polygon.io
  *
- * Groups positions by underlying/expiration to minimize API calls,
- * then matches each position to its contract in the options chain.
+ * Takes positions from Clear Street /pnl-details (which includes pricing and P&L),
+ * then adds Greeks from Polygon.io options chains.
  */
 export async function enrichPositionsWithGreeks(
-  positions: ClearStreetPosition[]
+  positions: ClearStreetPnlDetail[]
 ): Promise<EnrichmentResult> {
   const errors: string[] = []
   const enrichedPositions: EnrichedPosition[] = []
@@ -242,7 +266,7 @@ export async function enrichPositionsWithGreeks(
       return {
         group,
         chain: null,
-        error: `Failed to fetch chain for ${group.underlying} ${group.expiration}: ${error instanceof Error ? error.message : "Unknown error"}`
+        error: `Failed to fetch Greeks for ${group.underlying} ${group.expiration}: ${error instanceof Error ? error.message : "Unknown error"}`
       }
     }
   })
@@ -276,15 +300,10 @@ export async function enrichPositionsWithGreeks(
     }
   }
 
-  // Sort by underlying, then by expiration, then by strike
+  // Sort by underlying, then by strike
   enrichedPositions.sort((a, b) => {
     if (a.underlying !== b.underlying) {
       return a.underlying.localeCompare(b.underlying)
-    }
-    if (a.expiration !== b.expiration) {
-      if (!a.expiration) return 1
-      if (!b.expiration) return -1
-      return a.expiration.localeCompare(b.expiration)
     }
     if (a.strike !== b.strike) {
       if (a.strike === null) return 1
@@ -305,8 +324,11 @@ export function calculatePositionsSummary(positions: EnrichedPosition[]): {
   optionsCount: number
   equitiesCount: number
   totalMarketValue: number
-  totalCostBasis: number
+  totalDayPnl: number
   totalUnrealizedPnl: number
+  totalRealizedPnl: number
+  totalPnl: number
+  totalFees: number
   totalDelta: number
   totalGamma: number
   totalTheta: number
@@ -315,24 +337,19 @@ export function calculatePositionsSummary(positions: EnrichedPosition[]): {
   const optionsCount = positions.filter((p) => p.isOption).length
   const equitiesCount = positions.filter((p) => !p.isOption).length
 
-  const totalMarketValue = positions.reduce((sum, p) => sum + p.marketValue, 0)
-  const totalCostBasis = positions.reduce((sum, p) => sum + p.costBasis, 0)
-  const totalUnrealizedPnl = positions.reduce((sum, p) => sum + p.unrealizedPnl, 0)
-  const totalDelta = positions.reduce((sum, p) => sum + p.deltaExposure, 0)
-  const totalGamma = positions.reduce((sum, p) => sum + p.gammaExposure, 0)
-  const totalTheta = positions.reduce((sum, p) => sum + p.thetaExposure, 0)
-  const totalVega = positions.reduce((sum, p) => sum + p.vegaExposure, 0)
-
   return {
     totalPositions: positions.length,
     optionsCount,
     equitiesCount,
-    totalMarketValue,
-    totalCostBasis,
-    totalUnrealizedPnl,
-    totalDelta,
-    totalGamma,
-    totalTheta,
-    totalVega
+    totalMarketValue: positions.reduce((sum, p) => sum + p.marketValue, 0),
+    totalDayPnl: positions.reduce((sum, p) => sum + p.dayPnl, 0),
+    totalUnrealizedPnl: positions.reduce((sum, p) => sum + p.unrealizedPnl, 0),
+    totalRealizedPnl: positions.reduce((sum, p) => sum + p.realizedPnl, 0),
+    totalPnl: positions.reduce((sum, p) => sum + p.totalPnl, 0),
+    totalFees: positions.reduce((sum, p) => sum + p.totalFees, 0),
+    totalDelta: positions.reduce((sum, p) => sum + p.deltaExposure, 0),
+    totalGamma: positions.reduce((sum, p) => sum + p.gammaExposure, 0),
+    totalTheta: positions.reduce((sum, p) => sum + p.thetaExposure, 0),
+    totalVega: positions.reduce((sum, p) => sum + p.vegaExposure, 0)
   }
 }

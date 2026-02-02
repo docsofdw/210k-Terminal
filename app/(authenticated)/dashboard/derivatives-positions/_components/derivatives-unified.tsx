@@ -217,7 +217,7 @@ export function DerivativesUnified({
       const isLong = position.quantity > 0
       const quantity = Math.abs(position.quantity)
       const action: Action = isLong ? "buy" : "sell"
-      const cost = position.costBasis
+      const cost = position.marketValue // Use current market value
 
       const leg: UnifiedLeg = {
         id: `real-${position.clearStreetSymbol}`,
@@ -232,9 +232,9 @@ export function DerivativesUnified({
         ),
         source: "real",
         clearStreetSymbol: position.clearStreetSymbol,
-        averageCost: position.averageCost,
+        averageCost: position.sodPrice, // SOD price as "cost" under mark-to-market
         unrealizedPnl: position.unrealizedPnl,
-        unrealizedPnlPercent: position.unrealizedPnlPercent,
+        realizedPnl: position.realizedPnl,
         deltaExposure: position.deltaExposure,
         gammaExposure: position.gammaExposure,
         thetaExposure: position.thetaExposure,

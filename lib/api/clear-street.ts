@@ -10,6 +10,7 @@
 import type {
   ClearStreetPosition,
   ClearStreetPnlSummary,
+  ClearStreetPnlDetail,
   ClearStreetTrade,
   ClearStreetAccount,
   ClearStreetConfig,
@@ -101,15 +102,65 @@ async function getAccessToken(): Promise<string> {
 // ============ API Methods ============
 
 /**
+ * Fetch position-level P&L details for the configured account
+ * Uses the /pnl-details endpoint which provides real-time pricing and P&L
+ *
+ * This is the primary endpoint for position data - includes:
+ * - Current price and SOD price (mark-to-market cost basis)
+ * - Day P&L, unrealized P&L, realized P&L, total P&L
+ * - Market values (current and SOD)
+ * - Trade activity (bought/sold quantities)
+ * - Fees
+ */
+export async function fetchPnlDetails(): Promise<ClearStreetPnlDetail[]> {
+  try {
+    const token = await getAccessToken()
+    const config = getConfig()
+
+    const response = await fetch(
+      `https://api.clearstreet.io/studio/v2/accounts/${config.accountId}/pnl-details`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json"
+        }
+      }
+    )
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      throw new Error(`PnL Details API error: ${response.status} - ${errorText}`)
+    }
+
+    const data = await response.json()
+
+    if (!data.data) {
+      return []
+    }
+
+    // Filter to only options (skip cash positions)
+    return data.data.filter(
+      (item: ClearStreetPnlDetail) =>
+        item.symbol !== "Cash - USD" && item.underlier !== "Cash - USD"
+    )
+  } catch (error) {
+    console.error("Error fetching Clear Street P&L details:", error)
+    throw new Error(
+      `Failed to fetch P&L details: ${error instanceof Error ? error.message : "Unknown error"}`
+    )
+  }
+}
+
+/**
  * Fetch all positions (holdings) for the configured account
- * Uses the holdings endpoint which provides position data
+ * Note: This endpoint only returns basic position data (symbol, quantity)
+ * For pricing and P&L, use fetchPnlDetails() instead
  */
 export async function fetchPositions(): Promise<ClearStreetPosition[]> {
   try {
     const token = await getAccessToken()
     const config = getConfig()
 
-    // Use holdings endpoint directly (SDK positions endpoint returns 403)
     const response = await fetch(
       `https://api.clearstreet.io/studio/v2/accounts/${config.accountId}/holdings`,
       {
@@ -132,15 +183,14 @@ export async function fetchPositions(): Promise<ClearStreetPosition[]> {
     }
 
     // Filter to only options (skip USD cash position)
-    // Map holdings response to our position type
     return data.data
       .filter((holding: { asset_class: string }) => holding.asset_class === "option")
       .map((holding: { symbol: string; quantity: string }) => ({
         account_id: data.account_id,
         account_number: data.account_number,
-        average_cost: 0, // Holdings doesn't provide cost basis
+        average_cost: 0,
         quantity: holding.quantity,
-        symbol: holding.symbol.trim() // Remove extra spaces from OCC symbol
+        symbol: holding.symbol.trim()
       }))
   } catch (error) {
     console.error("Error fetching Clear Street holdings:", error)
@@ -423,4 +473,84 @@ export async function testConnection(): Promise<{
  */
 export function clearTokenCache(): void {
   tokenCache = null
+}
+
+/**
+ * Fetch activity data for the entity (trade history with cost basis)
+ * Uses the v2 API endpoint: POST /entities/{entity_id}/activity
+ *
+ * Note: This endpoint returns historical activity including:
+ * - Trade details (price, quantity, side)
+ * - Cost basis and gross/net amounts
+ * - Commission and fees
+ */
+export async function fetchEntityActivity(options?: {
+  startDate?: string // YYYY-MM-DD format
+  endDate?: string
+  activityType?: "TRADES" | "JOURNALS" | "TRADES_AND_JOURNALS"
+}): Promise<{
+  success: boolean
+  data?: unknown[]
+  error?: string
+  rawResponse?: unknown
+}> {
+  try {
+    const config = getConfig()
+
+    if (!config.entityId) {
+      return {
+        success: false,
+        error: "Entity ID not configured"
+      }
+    }
+
+    const token = await getAccessToken()
+
+    // Build request body per Clear Street API spec
+    const body: Record<string, unknown> = {
+      activity_data_type: options?.activityType || "TRADES"
+    }
+
+    // Add date range if provided
+    if (options?.startDate && options?.endDate) {
+      body.effective_date_range = {
+        inclusive_start_date: options.startDate,
+        exclusive_end_date: options.endDate
+      }
+    }
+
+    const response = await fetch(
+      `https://api.clearstreet.io/studio/v2/entities/${config.entityId}/activity`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          Accept: "application/json"
+        },
+        body: JSON.stringify(body)
+      }
+    )
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      return {
+        success: false,
+        error: `Activity API error: ${response.status} - ${errorText}`
+      }
+    }
+
+    const data = await response.json()
+
+    return {
+      success: true,
+      data: data.data || data,
+      rawResponse: data
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error"
+    }
+  }
 }
