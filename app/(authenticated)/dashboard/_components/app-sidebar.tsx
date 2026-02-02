@@ -75,6 +75,10 @@ export function AppSidebar({
           {
             title: "Positions",
             url: "/dashboard/portfolio"
+          },
+          {
+            title: "Derivatives",
+            url: "/dashboard/derivatives-positions"
           }
         ]
       },

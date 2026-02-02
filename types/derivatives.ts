@@ -224,3 +224,56 @@ export interface StrategyAnalysisRequest {
 }
 
 export interface StrategyAnalysisResponse extends StrategyAnalysis {}
+
+// ============ Unified Strategy Types (Real + Simulated) ============
+
+export type LegSource = "real" | "simulated"
+
+export interface UnifiedLeg extends OptionLeg {
+  source: LegSource
+  clearStreetSymbol?: string // Original OCC symbol from Clear Street
+  averageCost?: number // Entry price from Clear Street
+  realizedPnl?: number // Realized P&L from Clear Street
+  unrealizedPnl?: number // Unrealized P&L
+  unrealizedPnlPercent?: number
+  // Position-specific Greeks exposure
+  deltaExposure?: number
+  gammaExposure?: number
+  thetaExposure?: number
+  vegaExposure?: number
+}
+
+export interface UnifiedStrategy {
+  realLegs: UnifiedLeg[]
+  simulatedLegs: UnifiedLeg[]
+  combinedLegs: UnifiedLeg[]
+  underlying: string
+  underlyingPrice: number
+  btcPrice: number
+}
+
+export interface CombinedAnalysis extends StrategyAnalysis {
+  // Real position breakdown
+  realCost: number
+  realDelta: number
+  realGamma: number
+  realTheta: number
+  realVega: number
+  realUnrealizedPnl: number
+
+  // Simulated position breakdown
+  simulatedCost: number
+  simulatedDelta: number
+  simulatedGamma: number
+  simulatedTheta: number
+  simulatedVega: number
+
+  // Impact analysis
+  deltaChange: number // How much delta changes with simulated legs
+  gammaChange: number
+  thetaChange: number
+  vegaChange: number
+  costChange: number // Additional cost from simulated legs
+}
+
+export type PnLViewMode = "combined" | "real" | "simulated"
