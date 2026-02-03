@@ -106,6 +106,33 @@ npm run db:backfill -- --days=365
 
 ---
 
+## Polygon.io (Options Data)
+
+**Purpose:** Options chains with Greeks for derivatives simulator and portfolio enrichment
+
+**API:** `https://api.polygon.io`
+
+**Plan:** Options Starter (~$29/month)
+
+**Rate Limits:** 5 requests/minute (free tier) or unlimited (paid)
+
+**Refresh Frequency:**
+- On-demand when user selects expiration
+- 5-minute client-side cache
+
+**Endpoints Used:**
+| Endpoint | Purpose |
+|----------|---------|
+| `/v3/reference/options/contracts` | Get available expirations (paginated) |
+| `/v3/snapshot/options/{underlying}` | Options chain with Greeks |
+| `/v2/aggs/ticker/{symbol}/prev` | Underlying price |
+
+**Pagination:** The contracts endpoint returns max 1000 contracts per request. To get ALL available expirations (typically 1-2+ years out), the API wrapper follows the `next_url` pagination field until all contracts are retrieved. This ensures far-dated LEAPs are available in the simulator.
+
+**Environment Variable:** `POLYGON_API_KEY`
+
+---
+
 ## Twelve Data (Fundamentals)
 
 **Purpose:** Balance sheet data (cash, debt, diluted shares) for all companies
@@ -272,6 +299,9 @@ TWELVE_DATA_API_KEY=         # From Twelve Data Pro plan
 # Yahoo Finance
 # No API key required for yahoo-finance2
 
+# Polygon.io (Options)
+POLYGON_API_KEY=             # From Polygon.io Options plan
+
 # CoinGecko
 COINGECKO_API_KEY=           # Optional, for higher rate limits
 
@@ -302,6 +332,7 @@ BITCOIN_MAGAZINE_PRO_API_KEY= # On-chain metrics API
 | MarketData.app | 100/min | ~70 US stocks every 15 min |
 | Yahoo Finance | ~2,000/hour | ~37 international stocks every 15 min |
 | Twelve Data | 8/min (balance_sheet) | ~50 companies daily |
+| Polygon.io | Unlimited (paid) | On-demand for options |
 | CoinGecko | 10-50/min | 1/min |
 | FX API | 1,500/month | 30/month (1/day) |
 | Bitcoin Magazine Pro | 500/day | ~168/day max (7 metrics × 24 hours) |

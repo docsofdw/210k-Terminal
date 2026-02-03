@@ -177,29 +177,50 @@ export async function getOptionsExpirations(
   }
 
   try {
-    // Fetch contracts to get unique expirations
-    const url = `${POLYGON_BASE_URL}/v3/reference/options/contracts?underlying_ticker=${symbol}&expired=false&limit=1000`
-    const response = await fetchWithKey(url)
+    // Fetch ALL contracts using pagination to get ALL unique expirations
+    // Without pagination, limit=1000 may only return near-term expirations
+    const allExpirations = new Set<string>()
+    let url: string | null = `${POLYGON_BASE_URL}/v3/reference/options/contracts?underlying_ticker=${symbol}&expired=false&limit=1000`
+    let pageCount = 0
+    const maxPages = 20 // Safety limit to prevent infinite loops
 
-    if (!response.ok) {
-      console.error(`Polygon Options API error: ${response.status}`)
-      return null
+    while (url && pageCount < maxPages) {
+      const response = await fetchWithKey(url)
+
+      if (!response.ok) {
+        console.error(`Polygon Options API error: ${response.status}`)
+        // If we have some results already, use them
+        if (allExpirations.size > 0) break
+        return null
+      }
+
+      const data: PolygonContractsResponse = await response.json()
+
+      if (data.status !== "OK") {
+        if (allExpirations.size > 0) break
+        console.warn(`Polygon: Bad status for ${symbol}`)
+        return null
+      }
+
+      // Add expiration dates from this page
+      if (data.results) {
+        for (const contract of data.results) {
+          allExpirations.add(contract.expiration_date)
+        }
+      }
+
+      // Follow pagination if there's more data
+      url = data.next_url || null
+      pageCount++
     }
 
-    const data: PolygonContractsResponse = await response.json()
-
-    if (data.status !== "OK" || !data.results || data.results.length === 0) {
-      console.warn(`Polygon: No contracts for ${symbol}`)
-      return null
-    }
-
-    // Extract unique expiration dates
-    const expirations = [...new Set(data.results.map(c => c.expiration_date))].sort()
-
-    if (expirations.length === 0) {
+    if (allExpirations.size === 0) {
       console.warn(`Polygon: No expirations for ${symbol}`)
       return null
     }
+
+    // Sort expirations chronologically
+    const expirations = [...allExpirations].sort()
 
     const result: OptionsExpirations = {
       symbol: symbol.toUpperCase(),

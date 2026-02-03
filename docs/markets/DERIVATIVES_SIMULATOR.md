@@ -317,9 +317,11 @@ Features:
 - RESTful API
 
 Endpoints used:
-- `GET /v3/reference/options/contracts` - Get available contracts/expirations
+- `GET /v3/reference/options/contracts` - Get available contracts/expirations (with pagination)
 - `GET /v3/snapshot/options/{underlying}` - Get options chain with Greeks
 - `GET /v2/aggs/ticker/{symbol}/prev` - Get underlying price
+
+**Pagination:** The expirations endpoint uses pagination to fetch ALL available expirations (typically 1-2+ years out). Without pagination, only ~9 near-term expirations would be returned due to the 1000 contract limit per request.
 
 ## Usage
 
