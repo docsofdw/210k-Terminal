@@ -40,10 +40,14 @@ interface UnifiedBuilderProps {
 
 function formatCurrency(value: number): string {
   const absValue = Math.abs(value)
-  if (absValue >= 1000) {
-    return `${value >= 0 ? "" : "-"}$${(absValue / 1000).toFixed(1)}K`
+  const sign = value >= 0 ? "" : "-"
+  if (absValue >= 1000000) {
+    return `${sign}$${(absValue / 1000000).toLocaleString("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}M`
   }
-  return `${value >= 0 ? "" : "-"}$${absValue.toFixed(2)}`
+  if (absValue >= 10000) {
+    return `${sign}$${(absValue / 1000).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}K`
+  }
+  return `${sign}$${absValue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
 interface LegRowProps {
@@ -151,7 +155,7 @@ function LegRow({
                 onChange={(e) =>
                   onUpdateQuantity(Math.max(1, parseInt(e.target.value) || 1))
                 }
-                className="h-7 w-12 text-center text-sm"
+                className="h-7 w-20 text-center text-sm font-mono [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 min={1}
               />
               <Button
@@ -166,12 +170,12 @@ function LegRow({
           ) : (
             <span
               className={cn(
-                "w-16 text-right font-medium",
+                "w-20 text-right font-medium font-mono",
                 displayQuantity > 0 ? "text-green-500" : "text-red-500"
               )}
             >
               {displayQuantity > 0 ? "+" : ""}
-              {displayQuantity}
+              {displayQuantity.toLocaleString()}
             </span>
           )}
         </div>

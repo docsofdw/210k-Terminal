@@ -32,13 +32,13 @@ export function StrategyLegRow({ leg, onRemove, onUpdate }: StrategyLegRowProps)
       {/* Top row: Strike, Type, Action, Qty */}
       <div className="flex items-center gap-3">
         {/* Strike + Type */}
-        <div className="flex items-center gap-2 min-w-[100px]">
+        <div className="flex items-center gap-1.5 min-w-[80px]">
           <span className="font-mono text-base font-semibold">
-            ${contract.strike.toFixed(0)}
+            ${contract.strike.toLocaleString()}
           </span>
           <span
-            className={`text-xs font-medium ${
-              isCall ? "text-blue-400" : "text-purple-400"
+            className={`text-xs font-semibold px-1 py-0.5 rounded ${
+              isCall ? "text-blue-400 bg-blue-400/10" : "text-purple-400 bg-purple-400/10"
             }`}
           >
             {isCall ? "C" : "P"}
@@ -57,18 +57,17 @@ export function StrategyLegRow({ leg, onRemove, onUpdate }: StrategyLegRowProps)
         </Select>
 
         {/* Quantity */}
-        <div className="flex items-center gap-1">
-          <span className="text-xs text-muted-foreground">x</span>
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs text-muted-foreground">×</span>
           <Input
             type="number"
             min={1}
-            max={100}
             value={quantity}
             onChange={(e) => {
               const newQty = parseInt(e.target.value) || 1
-              onUpdate({ quantity: Math.max(1, Math.min(100, newQty)) })
+              onUpdate({ quantity: Math.max(1, newQty) })
             }}
-            className="w-[50px] h-7 text-xs text-center font-mono"
+            className="w-[80px] h-7 text-sm text-center font-mono [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
           />
         </div>
 
@@ -77,11 +76,11 @@ export function StrategyLegRow({ leg, onRemove, onUpdate }: StrategyLegRowProps)
 
         {/* Cost */}
         <div
-          className={`font-mono text-sm font-medium ${
+          className={`font-mono text-sm font-semibold min-w-[90px] text-right ${
             cost > 0 ? "text-red-400" : "text-green-400"
           }`}
         >
-          {cost > 0 ? "-" : "+"}${Math.abs(cost).toFixed(0)}
+          {cost > 0 ? "-" : "+"}${Math.abs(cost).toLocaleString("en-US", { maximumFractionDigits: 0 })}
         </div>
 
         {/* Remove Button */}

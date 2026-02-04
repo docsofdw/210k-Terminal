@@ -37,10 +37,14 @@ interface PositionsTableProps {
 function formatCurrency(value: number | null): string {
   if (value === null) return "N/A"
   const absValue = Math.abs(value)
-  if (absValue >= 1000) {
-    return `${value >= 0 ? "" : "-"}$${(absValue / 1000).toFixed(1)}K`
+  const sign = value >= 0 ? "" : "-"
+  if (absValue >= 1000000) {
+    return `${sign}$${(absValue / 1000000).toLocaleString("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 2 })}M`
   }
-  return `${value >= 0 ? "" : "-"}$${absValue.toFixed(2)}`
+  if (absValue >= 10000) {
+    return `${sign}$${(absValue / 1000).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}K`
+  }
+  return `${sign}$${absValue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
 function formatPercent(value: number | null): string {
@@ -62,10 +66,13 @@ function formatDelta(value: number | null): string {
   if (value === null) return "N/A"
   const absValue = Math.abs(value)
   const sign = value >= 0 ? "+" : "-"
-  if (absValue >= 1000) {
-    return `${sign}${(absValue / 1000).toFixed(1)}K`
+  if (absValue >= 1000000) {
+    return `${sign}${(absValue / 1000000).toLocaleString("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}M`
   }
-  return `${sign}${absValue.toFixed(0)}`
+  if (absValue >= 1000) {
+    return `${sign}${(absValue / 1000).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 1 })}K`
+  }
+  return `${sign}${absValue.toLocaleString("en-US", { maximumFractionDigits: 0 })}`
 }
 
 export function PositionsTable({
@@ -190,12 +197,12 @@ export function PositionsTable({
                     </TableCell>
                     <TableCell
                       className={cn(
-                        "text-right font-medium",
+                        "text-right font-medium font-mono",
                         isLong ? "text-green-500" : "text-red-500"
                       )}
                     >
                       {isLong ? "+" : ""}
-                      {position.quantity}
+                      {position.quantity.toLocaleString()}
                     </TableCell>
                     <TableCell className="text-right text-muted-foreground">
                       ${position.sodPrice.toFixed(2)}

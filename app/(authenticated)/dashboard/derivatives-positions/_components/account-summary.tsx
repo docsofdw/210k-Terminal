@@ -15,20 +15,26 @@ interface AccountSummaryProps {
 
 function formatCurrency(value: number): string {
   const absValue = Math.abs(value)
+  const sign = value >= 0 ? "" : "-"
   if (absValue >= 1000000) {
-    return `${value >= 0 ? "" : "-"}$${(absValue / 1000000).toFixed(2)}M`
+    return `${sign}$${(absValue / 1000000).toLocaleString("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 2 })}M`
   }
-  if (absValue >= 1000) {
-    return `${value >= 0 ? "" : "-"}$${(absValue / 1000).toFixed(1)}K`
+  if (absValue >= 10000) {
+    return `${sign}$${(absValue / 1000).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}K`
   }
-  return `${value >= 0 ? "" : "-"}$${absValue.toFixed(2)}`
+  return `${sign}$${absValue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
 function formatGreek(value: number, decimals: number = 0): string {
-  if (Math.abs(value) >= 1000) {
-    return `${value >= 0 ? "+" : ""}${(value / 1000).toFixed(1)}K`
+  const absValue = Math.abs(value)
+  const sign = value >= 0 ? "+" : "-"
+  if (absValue >= 1000000) {
+    return `${sign}${(absValue / 1000000).toLocaleString("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}M`
   }
-  return `${value >= 0 ? "+" : ""}${value.toFixed(decimals)}`
+  if (absValue >= 1000) {
+    return `${sign}${(absValue / 1000).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 1 })}K`
+  }
+  return `${sign}${absValue.toLocaleString("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}`
 }
 
 interface SummaryCardProps {

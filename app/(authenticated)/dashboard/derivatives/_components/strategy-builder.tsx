@@ -84,7 +84,7 @@ export function StrategyBuilder({
                     : "text-muted-foreground"
               }`}
             >
-              ${Math.abs(totalCost).toFixed(2)}
+              ${Math.abs(totalCost).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </div>
         </div>
@@ -92,7 +92,7 @@ export function StrategyBuilder({
         <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
           <span>{legs.length} leg{legs.length !== 1 ? "s" : ""}</span>
           <span>
-            {legs.reduce((sum, leg) => sum + leg.quantity, 0)} contract{legs.reduce((sum, leg) => sum + leg.quantity, 0) !== 1 ? "s" : ""}
+            {legs.reduce((sum, leg) => sum + leg.quantity, 0).toLocaleString()} contract{legs.reduce((sum, leg) => sum + leg.quantity, 0) !== 1 ? "s" : ""}
           </span>
         </div>
       </div>
