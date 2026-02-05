@@ -104,6 +104,13 @@ export const companies = pgTable("companies", {
   lastSyncedAt: timestamp("last_synced_at"),
   syncSource: text("sync_source"),
 
+  // Data Provenance (for portfolio company scrapers)
+  sharesSource: text("shares_source"), // "scraper:swc" | "scraper:lqwd" | "manual" | "api:yahoo" | "sheets"
+  sharesLastVerified: timestamp("shares_last_verified"),
+  dilutionSource: text("dilution_source"), // "scraper:mstr" | "scraper:moon" | "manual" | "sheets"
+  dilutionLastVerified: timestamp("dilution_last_verified"),
+  capitalStructureNotes: text("capital_structure_notes"), // Free text for complex situations
+
   // Metadata
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()

@@ -39,6 +39,10 @@
     {
       "path": "/api/cron/sync-live-fund-stats",
       "schedule": "0 */4 * * *"
+    },
+    {
+      "path": "/api/cron/scrape-portfolio-fundamentals",
+      "schedule": "0 6 * * 1"
     }
   ]
 }

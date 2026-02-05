@@ -182,3 +182,77 @@ export async function sendToSecondaryChat(text: string): Promise<TelegramSendRes
 
   return sendTelegramMessage({ chatId, text })
 }
+
+/**
+ * Send scraper status notification
+ */
+export async function sendScraperNotification(
+  results: Array<{
+    company: string
+    ticker: string
+    success: boolean
+    sharesOutstanding?: number
+    dilutedShares?: number
+    error?: string
+    changed?: boolean
+  }>
+): Promise<TelegramSendResult> {
+  const chatId = process.env.TELEGRAM_CHAT_ID_PRIMARY
+  if (!chatId) {
+    return { success: false, error: "Primary chat ID not configured" }
+  }
+
+  const successful = results.filter((r) => r.success)
+  const failed = results.filter((r) => !r.success)
+  const changed = results.filter((r) => r.changed)
+
+  const lines = [
+    "📊 <b>Portfolio Data Scraper</b>",
+    ""
+  ]
+
+  if (changed.length > 0) {
+    lines.push("<b>Updated:</b>")
+    for (const r of changed) {
+      lines.push(
+        `✓ ${r.company} (${r.ticker}): ${r.sharesOutstanding?.toLocaleString()} / ${r.dilutedShares?.toLocaleString()}`
+      )
+    }
+    lines.push("")
+  }
+
+  if (failed.length > 0) {
+    lines.push("<b>Failed:</b>")
+    for (const r of failed) {
+      lines.push(`✗ ${r.company}: ${r.error}`)
+    }
+    lines.push("")
+  }
+
+  const unchangedCount = successful.length - changed.length
+  if (unchangedCount > 0) {
+    lines.push(`<i>${unchangedCount} companies unchanged</i>`)
+  }
+
+  lines.push("", "<i>210k Terminal</i>")
+
+  return sendTelegramMessage({ chatId, text: lines.join("\n") })
+}
+
+/**
+ * Send scraper failure alert
+ */
+export async function sendScraperFailureAlert(
+  scraperName: string,
+  error: string
+): Promise<TelegramSendResult> {
+  const text = `
+⚠️ <b>Scraper Failed: ${scraperName}</b>
+
+<b>Error:</b> ${error}
+
+<i>210k Terminal</i>
+`.trim()
+
+  return sendToPrimaryChat(text)
+}

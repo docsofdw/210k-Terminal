@@ -93,16 +93,21 @@ Each company has unique instruments:
 
 ### Investor Relations (Shares Data)
 
-| Company | IR/Shares URL |
-|---------|---------------|
-| Capital B | https://cptlb.com/investors/news-financial-information/ |
-| Strategy | https://www.strategy.com/shares |
-| Metaplanet | https://metaplanet.jp/en/shareholders/disclosures |
-| Smarter Web Company | https://investors.smarterwebcompany.co.uk/investors/equity-snapshot/ |
-| LQWD Technologies | https://lqwdtech.com/investors/ |
-| Matador | https://www.matador.network/press-releases |
-| DigitalX | https://investorhub.digitalx.com/announcements |
-| LQWD (Shares Tab) | https://treasury.lqwdtech.com/?tab=shares |
+| Company | IR/Shares URL | Notes |
+|---------|---------------|-------|
+| Strategy | https://www.strategy.com/shares | Excellent - shows all converts + dilution |
+| Smarter Web Company | https://www.smarterwebcompany.co.uk/shareholders/equity-snapshot/ | Very clean - "shares in issue" + dilutive instruments |
+| LQWD Technologies | https://treasury.lqwdtech.com/?tab=shares | Structured dashboard with shares tab |
+| Capital B | https://cptlb.com/analytics/ | Quick numbers, or full filings at /investors/ |
+| Metaplanet | https://metaplanet.jp/en/shareholders/disclosures | Filings-based, check latest disclosure |
+| Moon Inc | https://portal.mooninc.hk/investor-relations/announcements | Fetch on 3rd of month - "monthly return for equity" file |
+| Oranje BTC | https://www.oranjebtc.com/dashboard | Dashboard with key metrics |
+| Matador | https://www.matador.network/press-releases | Press releases |
+| DigitalX | https://investorhub.digitalx.com/announcements | Announcements |
+
+**Portfolio-Specific Notes:**
+- **Treasury BV (TRSR):** Not yet live - use entry mNAV until trading begins
+- **DV8 (DV8.BK):** No Bitcoin holdings - mNAV not applicable
 
 ---
 
@@ -265,11 +270,43 @@ SWC → SWC.AQ
 ## Next Steps
 
 1. [ ] Audit current Google Sheets data for all companies
-2. [ ] Identify which companies have scrapable dashboards
-3. [ ] Build prototype scraper for Strategy /shares page
+2. [x] Identify which companies have scrapable dashboards
+3. [x] Build prototype scraper for Strategy /shares page
 4. [ ] Create alerting for when API data diverges significantly from Sheets
 5. [ ] Document manual update process for each company
 6. [ ] Consider webhook/RSS monitoring for company announcements
+
+---
+
+## Implemented Scrapers (Portfolio Companies)
+
+We've built automated scrapers for portfolio companies. These run weekly via cron and provide accurate diluted share counts directly from company sources.
+
+### Working Scrapers
+
+| Company | Ticker | Source | Status |
+|---------|--------|--------|--------|
+| **Strategy** | MSTR | strategy.com/shares | ✅ Extracts all converts, STRK, options, RSUs |
+| **Smarter Web** | SWC.AQ | smarterwebcompany.co.uk/shareholders/equity-snapshot | ✅ HTML scraper |
+| **Moon Inc** | 1723.HK | HKEX FF301 PDF | ✅ PDF parser |
+| **LQWD** | LQWD.V | treasury.lqwdtech.com | ✅ Puppeteer (JS-rendered) |
+| **Oranje** | OBTC3 | oranjebtc.com/dashboard | ✅ Calculates from market cap/price |
+
+### Needs Alternative
+
+| Company | Ticker | Issue | Status |
+|---------|--------|-------|--------|
+| **Capital B** | ALCPB.PA | Dashboard doesn't expose share data | ⚠️ Use filings |
+| **Metaplanet** | 3350.T | Disclosures are PDFs | ⚠️ Build PDF parser |
+
+### Manual Only
+
+| Company | Ticker | Reason |
+|---------|--------|--------|
+| **Treasury BV** | TRSR | Pre-trading |
+| **DV8** | DV8.BK | Thai SEC filings |
+
+See [PORTFOLIO_DATA_GATHERING.md](./PORTFOLIO_DATA_GATHERING.md) for full implementation details.
 
 ---
 
@@ -283,3 +320,9 @@ The existing bitcointreasuries.net scraper is a Google Apps Script that:
 - Can run on daily trigger
 
 See the full script in the project repository or Google Apps Script editor.
+
+---
+
+## Related Documentation
+
+- **[Portfolio Data Gathering Strategy](./PORTFOLIO_DATA_GATHERING.md)** - Detailed per-company data sources and automation tiers for 210k portfolio companies
