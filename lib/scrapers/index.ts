@@ -70,7 +70,7 @@ export const SCRAPER_REGISTRY: ScraperConfig[] = [
     ticker: METAPLANET_TICKER,
     name: "Metaplanet",
     scraper: scrapeMetaplanet,
-    enabled: false, // Requires PDF parsing from disclosure documents
+    enabled: true, // Scrapes from analytics page
     requiresBrowser: true
   },
   {

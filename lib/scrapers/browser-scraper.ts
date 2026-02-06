@@ -320,28 +320,94 @@ export async function scrapeOranje(): Promise<ScraperResult<SharesData>> {
 export const ORANJE_TICKER = "OBTC3"
 
 // ============================================================================
-// Metaplanet Scraper (from disclosure page)
+// Metaplanet Scraper (from analytics page)
 // ============================================================================
+
+/**
+ * Parse value with B/M suffix (e.g., "1.14B" -> 1140000000, "27.03M" -> 27030000)
+ */
+function parseValueWithSuffix(value: string): number | null {
+  const match = value.match(/([\d.,]+)\s*([BMK])?/i)
+  if (!match) return null
+
+  const num = parseFloat(match[1].replace(/,/g, ""))
+  if (isNaN(num)) return null
+
+  const suffix = match[2]?.toUpperCase()
+  if (suffix === "B") return num * 1_000_000_000
+  if (suffix === "M") return num * 1_000_000
+  if (suffix === "K") return num * 1_000
+  return num
+}
 
 export async function scrapeMetaplanet(): Promise<ScraperResult<SharesData>> {
   const scrapedAt = new Date()
-  const source = "https://metaplanet.jp/en/shareholders/disclosures"
+  const source = "https://metaplanet.jp/en/analytics"
 
   try {
     const browser = await getBrowser()
     const page = await browser.newPage()
 
     await page.goto(source, { waitUntil: "networkidle0", timeout: 30000 })
+    // Wait for JS to render the analytics data
+    await new Promise((r) => setTimeout(r, 8000))
+
+    // Scroll to load more content
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
     await new Promise((r) => setTimeout(r, 3000))
 
-    const content = await page.content()
+    // Get rendered text content
+    const text = await page.evaluate(() => document.body.innerText)
+    const lines = text.split("\n")
 
-    // Metaplanet disclosures page - look for latest share count
-    // This is complex because data is in PDFs, so we may only get metadata
-    const sharesMatch = content.match(
-      /(?:shares?\s*outstanding|issued\s*shares?|total\s*shares?)[\s\S]{0,100}?([\d,]+)/i
-    )
-    const sharesOutstanding = sharesMatch ? parseNumber(sharesMatch[1]) : null
+    // Find "Shares Outstanding" label and get the value on the line before it
+    // Format: "1.14B" on one line, "Shares Outstanding" on the next
+    let sharesOutstanding: number | null = null
+    let btcHoldings: number | null = null
+    let marketCap: number | null = null
+    let mNAV: number | null = null
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim()
+
+      // Helper: find non-empty line before index
+      const findPreviousValue = (idx: number): string => {
+        for (let j = idx - 1; j >= Math.max(0, idx - 3); j--) {
+          const prev = lines[j].trim()
+          if (prev) return prev
+        }
+        return ""
+      }
+
+      // Shares Outstanding - value is on a line before the label
+      if (/^shares\s*outstanding$/i.test(line) && i > 0) {
+        const valueLine = findPreviousValue(i)
+        sharesOutstanding = parseValueWithSuffix(valueLine)
+      }
+
+      // BTC Holdings - value is on a line before the label (e.g., "₿35,102")
+      if (/^btc\s*holdings?$/i.test(line) && i > 0 && !btcHoldings) {
+        const valueLine = findPreviousValue(i)
+        const btcMatch = valueLine.match(/₿([\d,]+)/)
+        if (btcMatch) {
+          btcHoldings = parseNumber(btcMatch[1])
+        }
+      }
+
+      // Market Cap - value on a line before label
+      if (/^market\s*cap$/i.test(line) && i > 0 && !marketCap) {
+        const valueLine = findPreviousValue(i)
+        if (valueLine.includes("$")) {
+          marketCap = parseValueWithSuffix(valueLine.replace(/[$¥]/g, ""))
+        }
+      }
+
+      // mNAV - value on a line before label
+      if (/^mnav$/i.test(line) && i > 0) {
+        const valueLine = findPreviousValue(i)
+        mNAV = parseFloat(valueLine)
+      }
+    }
 
     await page.close()
 
@@ -349,15 +415,21 @@ export async function scrapeMetaplanet(): Promise<ScraperResult<SharesData>> {
       return {
         success: false,
         error:
-          "Could not extract shares from Metaplanet disclosures - may require PDF parsing",
+          "Could not extract shares outstanding from Metaplanet analytics",
         source,
         scrapedAt
       }
     }
 
+    const notes: string[] = []
+    if (btcHoldings) notes.push(`BTC: ${btcHoldings.toLocaleString()}`)
+    if (marketCap) notes.push(`MCap: $${(marketCap / 1e9).toFixed(2)}B`)
+    if (mNAV) notes.push(`mNAV: ${mNAV.toFixed(2)}`)
+
     const data: SharesData = {
       sharesOutstanding,
-      dilutedShares: sharesOutstanding // Would need warrant data from separate source
+      dilutedShares: sharesOutstanding, // Analytics page shows one share count
+      notes: notes.length > 0 ? notes.join(", ") : undefined
     }
 
     return { success: true, data, source, scrapedAt }
